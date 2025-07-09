@@ -1,3 +1,5 @@
+import subnautica_db
+
 #My function collection
 def loadMainMenu():
     print("==========================")
@@ -6,6 +8,7 @@ def loadMainMenu():
     print("What would you like to do do?")
     print("[0] Exit")
     print("[1] Search Blueprint")
+    print("[2] View creature encyclopedia")
     
 def checkOptionValid(option):
     if option < 0 :
@@ -28,3 +31,6 @@ match option:
         print("Exiting the program...")
     case 1:
         print(f"Option {option} selected")
+    case 2: 
+        subnautica_db.createCreatureTable()
+        
