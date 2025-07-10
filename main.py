@@ -32,5 +32,8 @@ match option:
     case 1:
         print(f"Option {option} selected")
     case 2: 
-        subnautica_db.createCreatureTable()
+        #Set the database up for use
+        subnautica_db.create_CreatureTable()
+        subnautica_db.check_creaturesDB()
+        subnautica_db.get_allCreatures()
         
