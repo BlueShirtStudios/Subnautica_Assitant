@@ -1,4 +1,5 @@
 import sqlite3
+import pandas as pd
 
 DB_NAME = "subnautica.db"
 
@@ -41,9 +42,8 @@ def add_Creature(name, category, biomes, behavior, danger_level, depth_range, pd
                 cursor.execute('''
                                INSERT INTO creatures (name, category, biomes, behavior, danger_level, depth_range, pda_entry, image_url)
                                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                               ''', (name, category, biomes, danger_level, depth_range, pda_entry, image_url))
+                               ''', (name, category, biomes, behavior, danger_level, depth_range, pda_entry, image_url))
                 conn.commit
-                print("Succesfully Addad to databank.")
                 return cursor.lastrowid
             except sqlite3.IntegrityError:
                 print(f"Error: Creature: {name} already exists.")
@@ -53,12 +53,8 @@ def add_Creature(name, category, biomes, behavior, danger_level, depth_range, pd
 def get_allCreatures():
     with connect() as conn:
         if conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT * FROM creatures")
-            rows = cursor.fetchall
-            if rows:
-                for row in rows:
-                    print(row)
+            panda_df = pd.read_sql_query("SELECT * FROM creatures", conn)
+            print(panda_df)
 
 def populate_Database():
     # --- Herbivores ---
@@ -449,13 +445,57 @@ def populate_Database():
         "Large, translucent leviathan. Juveniles are territorial, adults patrol the ecological dead zone.",
         "https://static.wikia.nocookie.net/subnautica/images/c/c3/Ghost_Leviathan_Juvenile_Scan.png"
     )
-    
+          
 def check_creaturesDB():
-    with connect() as conn:
+    conn = connect()
+    if not conn:
+        print("Could not connect to database.")
+        return
+
+    cursor = conn.cursor()
+
+    #Check if table exists
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='creatures'")
+    if cursor.fetchone() is None:
+        create_CreatureTable()
+
+    #Check if table is empty
+    cursor.execute("SELECT COUNT(*) FROM creatures")
+    result = cursor.fetchone()
+    if result and result[0] == 0:
+        populate_Database()
+
+    conn.close()
+
+def creatures_DB_Setup():
+    create_CreatureTable()
+    check_creaturesDB()
+    get_allCreatures()
+    
+def search_CreatureByName(creature_name):
+    conn = connect()
+    if not conn:
+        print("An error occurred.")
+        return
+    else:
         cursor = conn.cursor()
-        sql_query = "SELECT COUNT(*) FROM creatures"
-        if cursor.execute(sql_query) == 0:
-            populate_Database
+    
+    #Assemble the query + run and return
+    try:
+        sql_Query = "SELECT * FROM creatures WHERE name LIKE ?"
+        search = f"%{creature_name}%"
+        panda_dt = pd.read_sql_query( sql_Query, conn, params=(search,))
+        if not panda_dt.empty:
+            print(panda_dt)
         else:
-          print("Database has values")
+            print("Creature with such name is not found.")
+    except Exception as e:
+        print(f"There is an error when query is ran: {e}")
+    finally:
+        conn.close()
+        
+        
+    
+    
+        
             
