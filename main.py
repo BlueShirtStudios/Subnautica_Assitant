@@ -17,23 +17,33 @@ def checkOptionValid(option):
     else:
         return True
     
-#The actual program
-loadMainMenu()
-option = int(input("Please enter the option you want to proceed with: "))
-
-#Check if option is valid
-while checkOptionValid(option) != True:
-    option = int(input("Please enter the option you want to proceed with: "))
+def mainMenu_Setup():
+    loadMainMenu()
+    mainOption = int(input("Please enter the option you want to proceed with: "))
     
+    #Check if option is valid
+    while checkOptionValid(mainOption) != True:
+        mainOption = int(input("Please enter the option you want to proceed with: "))
+    return mainOption
+    
+    
+#Start of main program
+mainOption = mainMenu_Setup()
+
 #If option is valid, proceed with determining what to do
-match option:
+match mainOption:
     case 0:
         print("Exiting the program...")
     case 1:
-        print(f"Option {option} selected")
+        print(f"Option {mainOption} selected")
     case 2: 
-        #Set the database up for use
-        subnautica_db.create_CreatureTable()
-        subnautica_db.check_creaturesDB()
-        subnautica_db.get_allCreatures()
+        subnautica_db.creatures_DB_Setup()
+        print("--------------------------------------------------------------------------------------")
+        print("What would you want to do?\n [0] Back to Main Menu \n[1] Search for a creature\n[2] Find creatures from specific biome\n[3] Find creatures by Depth")
+        creature_Option = int(input("Please enter the number of the action you want to take. "))
+        if creature_Option == 0:
+            print("Returning to main menu.") #--> Somthing with while loop and mainMenu_Setup()
+        elif creature_Option == 1:
+            creature = input("What creature are you looking for: ")
+            subnautica_db.search_CreatureByName(creature)
         
