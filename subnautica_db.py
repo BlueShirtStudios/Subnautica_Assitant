@@ -474,28 +474,28 @@ def creatures_DB_Setup():
     
 def search_CreatureByName(creature_name):
     conn = connect()
-    if not conn:
-        print("An error occurred.")
-        return
+    
+    #Assemble the query + run and return results
+    sql_Query = "SELECT * FROM creatures WHERE name LIKE ?"
+    search = f"%{creature_name}%"
+    panda_dt = pd.read_sql_query( sql_Query, conn, params=(search,))
+    if not panda_dt.empty:
+        print(panda_dt)
     else:
-        cursor = conn.cursor()
+        print("Creature with such name is not found.")
+    conn.close()
     
-    #Assemble the query + run and return
-    try:
-        sql_Query = "SELECT * FROM creatures WHERE name LIKE ?"
-        search = f"%{creature_name}%"
-        panda_dt = pd.read_sql_query( sql_Query, conn, params=(search,))
-        if not panda_dt.empty:
-            print(panda_dt)
-        else:
-            print("Creature with such name is not found.")
-    except Exception as e:
-        print(f"There is an error when query is ran: {e}")
-    finally:
-        conn.close()
-        
-        
+def search_CreatureByBiome(biome):
+    conn = connect()
+    sql_Query = "SELECT * creatures WHERE biome ?"
+    panda_dt = pd.read_sql_query( sql_Query, conn, params=(biome, ))
+    if not panda_dt.empty:
+        print(panda_dt)
+    else:
+        print("Biome not found in databank. Check if the biome name is correct.")
+    conn.close()
     
+def search_CreatureByDepth(depth):
+    conn = connect()
+    sql_Query =""
     
-        
-            
