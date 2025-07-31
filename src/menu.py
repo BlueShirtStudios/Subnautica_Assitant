@@ -1,4 +1,15 @@
+""" MODULE DESCRIPTION
+Contains the menus for the command-line interface. Currently it include the main menu and encyclopedia menu.
+The user selcted option also gets pushed to here, type and range validation takes place here
+"""
 class Menu:
+    """
+    CLI-Menus are accessed from here. Get user input and validate the input
+    
+    Attributes:
+    option (int) : Option the user chooses based on the menu
+    """
+    
     def __init__(self, option : int = None):
         self.option = option
     
@@ -19,7 +30,7 @@ class Menu:
                 option = int(input("Please enter the option you want to proceed with: "))
                 return option
             except ValueError:
-                print("Invalid Input. Please enter a value intger ")
+                print("Invalid Input. Please enter a value integer ")
     
     def _set_user_option(self, newOption):
         self.option = newOption

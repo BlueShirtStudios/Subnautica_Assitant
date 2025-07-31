@@ -1,9 +1,10 @@
 from creature_manger import CreatureManager
+from ai_assitant import AI_Assitant
 from menu import Menu
 
 DB_NAME = "subnautica.db"
 
-"""
+""" MODULE DESCRIPTION   
 Generate the staring point for the command-line interface. This section contains code to build the main menu,
 which will display the options for the user that can be done. The user's input will then determine which action
 will be done.
@@ -61,7 +62,20 @@ while continue_program == True:
                     case 2:
                         search_biome = input("What biome are you searching for? ")
                         creature_manager.get_creatures_in_biome(search_biome)
+                        continue
                         
                     case 3: 
                         search_category = input("For what category are you searching for? ")
                         creature_manager.get_creature_by_category(search_category)
+                        continue
+                    
+        case 1: #IDK this part is under discussion
+            print("Insert code here...")
+        
+        case 4:
+            #Create Assitant Instace
+            subnautica_assitant = AI_Assitant()
+            
+            #Start Chatting
+            subnautica_assitant.start_ai()
+            continue

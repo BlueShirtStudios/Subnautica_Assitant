@@ -5,7 +5,19 @@ from creature import Creature
 
 creature = Creature()
 
+""" MODULE DESCRIPTION
+This module will manage all things related to the creature class. Any queries, filtering, etc. will be handled here.
+On request from encyclopedia menu, any needed data will be extracted from the database to the Creature object and then 
+will be returned as specified.
+"""
+
 class CreatureManager:
+    """Manager of the creature class. Handles any database queries that might find its way here.
+
+       Attributes:
+       db_name (str) : Name of SQLite3 database
+    """
+    
     def __init__(self, DB_Name : str):
         self.db_name = DB_Name
         
@@ -40,6 +52,9 @@ class CreatureManager:
             else:
                 print("Could not connect/create the table")
                 
+        cursor.close()
+        conn.close()
+                
     def _add_Creature(self, name, category, biomes, behavior, danger_level, depth_range, pda_entry, image_url):
         with self._connect() as conn:
             if conn:
@@ -49,14 +64,14 @@ class CreatureManager:
                                    INSERT INTO creatures (name, category, biomes, behavior, danger_level, depth_range, pda_entry, image_url)
                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                                    ''', (name, category, biomes, behavior, danger_level, depth_range, pda_entry, image_url))
-                    conn.commit
-                    return cursor.lastrowid
+                    conn.commit()
                 except sqlite3.IntegrityError:
                     print(f"Error: Creature: {name} already exists.")
                 except sqlite3.Error as e:
                     print(f"Error with adding creature: {e}")
-
-                
+                    
+        cursor.close()
+        conn.close()                
     def _populate_initial_data(self):
         """
         This will populate the creature table in the database in the first run of the program
@@ -100,6 +115,7 @@ class CreatureManager:
        
         
     def check_creaturesDB(self):
+        #Connect to DB
         with self._connect() as conn:
             if not conn:
                 print("Could not connect to database.")
@@ -117,7 +133,7 @@ class CreatureManager:
         if result and result[0] == 0:
             self._populate_initial_data()
 
-        #Creates an Creature object instance
+        cursor.close()
         conn.close()
         
     def get_creature_by_name(self, creature_name : str):
@@ -151,6 +167,9 @@ class CreatureManager:
                 creature.display_creature_info()   
         else:
             print("No creature found with such name. Please make sure that the creature does exist.")
+            
+        cursor.close()
+        conn.close()
     
     def get_creatures_in_biome(self, search_biome: str):
         #Connect to DB
@@ -206,3 +225,6 @@ class CreatureManager:
                 #Print Results
                 result = f"Name: {creature.get_name()}\nBiomes: {creature.get_biomes()}\nDanger-level: {creature.get_danger_level()}\nDepth-Level: {creature.get_depth_level()}\nPDA Entry: {creature.get_pda_entry()}\n"
                 print(result)
+                
+        cursor.close()
+        conn.close()
