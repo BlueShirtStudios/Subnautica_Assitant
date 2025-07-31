@@ -1,4 +1,19 @@
+""" MODULE DISCRIPTION
+This module contains the details of the creatures and will work with it. Any output that needs details from creatures
+will be called from here
+"""
 class Creature:
+    """
+    creature_id (int) : Primary Key in database for the creature
+    name (str) : Name of the creature
+    category (str) : Which category does the creature fall in, e.g. carnivore
+    biomes (list[str]) : Biome/s where the creature is found
+    behavior (str) : Behavior towards player and enviroment
+    danger_level (str) : How dangerous the creature, e.g low or high
+    depth_level (str) : In what depth range can you encounter this creature 
+    pda_entry (str) : The pda entry of the creature
+    img_url (str) : Link for image of creature
+    """
     def __init__(self,
                  creature_id : int = None,
                  name : str = None,

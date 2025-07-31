@@ -1,0 +1,15 @@
+#Python
+__pycache__/
+env/
+venv/
+object_approach/__pycache__
+
+#Project Specifics 
+.env
+
+#IDE Specifics
+.vscode
+
+#Test files
+test/
+old_code.txt
