@@ -1,5 +1,6 @@
 import sqlite3
 from typing import List, Optional
+import time
 
 from creature import Creature
 
@@ -152,6 +153,7 @@ class CreatureManager:
         tuple_all_records = cursor.fetchall()
         if tuple_all_records:
             print("Retreiving information on all creatures with similer name...")
+            print("------------------------------------------------------------")
             for tuple_db_record in tuple_all_records: 
                 creature.set_creature_id(tuple_db_record[0])
                 creature.set_name(tuple_db_record[1])
@@ -164,7 +166,10 @@ class CreatureManager:
                 creature.set_img_url(tuple_db_record[8])
                 
                 #Print the results
-                creature.display_creature_info()   
+                creature.display_creature_info()  
+                print("------------------------------------------------------------")
+                time.sleep(5)
+                 
         else:
             print("No creature found with such name. Please make sure that the creature does exist.")
             
@@ -187,6 +192,7 @@ class CreatureManager:
         tuple_all_records = cursor.fetchall()
         if tuple_all_records:
             print(f"Searching for creatures in {search_biome}...")
+            print("------------------------------------------------------------")
             for tuple_db_record in tuple_all_records:
                 creature.set_name(tuple_db_record[1])
                 creature.set_category(tuple_db_record[2])
@@ -195,7 +201,9 @@ class CreatureManager:
                         
                 #Get Results
                 result = f"Name: {creature.get_name()}\nCategory: {creature.get_category()}\nBehavior: {creature.get_behavior()}\nDanger-level: {creature.get_danger_level()}\n" 
-                print(result)            
+                print(result) 
+                print("------------------------------------------------------------")
+                time.sleep(2)           
         else:
             print("Creatures in biome not found. Please make sure your searched biome exists.")
     
@@ -215,6 +223,7 @@ class CreatureManager:
         tuple_all_records = cursor.fetchall()
         if tuple_all_records:
             print(f"Searching for creatures in {search_category}...\n")
+            print("------------------------------------------------------------")
             for tuple_db_record in tuple_all_records:
                 creature.set_name(tuple_db_record[1])
                 creature.set_biomes(tuple_db_record[3].split(',') if tuple_db_record[3] else [])
@@ -225,6 +234,8 @@ class CreatureManager:
                 #Print Results
                 result = f"Name: {creature.get_name()}\nBiomes: {creature.get_biomes()}\nDanger-level: {creature.get_danger_level()}\nDepth-Level: {creature.get_depth_level()}\nPDA Entry: {creature.get_pda_entry()}\n"
                 print(result)
+                print("------------------------------------------------------------")
+                time.sleep(2)
                 
         cursor.close()
         conn.close()
