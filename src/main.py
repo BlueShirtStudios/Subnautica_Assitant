@@ -77,5 +77,5 @@ while continue_program == True:
             subnautica_assitant = AI_Assitant()
             
             #Start Chatting
-            subnautica_assitant.start_ai()
+            subnautica_assitant.start_chatting()
             continue
