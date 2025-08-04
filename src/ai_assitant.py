@@ -1,5 +1,7 @@
 import google.generativeai as genai
+from bot_components import KnowledgeBase, PromptManager
 import os
+import json
 
 """ MODULE DESCRIPTION
 An AI assitant that can quickly help users with any question they need an answer with. Related functions for the API setup and,
@@ -13,27 +15,19 @@ class AI_Assitant:
     converation_history (list[dict]) : List of past conversations of current session
     response (str) : Response of the AI
     """
-    def __init__(self, api_key_name : str = None, prompt : str = None, question : str = None, response : str = None,
+    def __init__(self, prompt : str = None, question : str = None, response : str = None,
                  conversation_history : list[dict] = None):
-        self._api_key_name = api_key_name
-        self._prompt = prompt
+        self._api_key_name = "GEMINI_API_KEY"
+        self._prompt = PromptManager()
         self._question = question
         self._response = response
+        self._knowledge_base = KnowledgeBase()
         self._conversation_history = conversation_history if not None else []
-        
-        #Add prompt to history
-        if self._prompt:
-            self._conversation_history.insert(0, {'role': 'user', 'parts': self._prompt})
+        self._rag_ready = bool(self._knowledge_base.data)
         
     def _set_prompt(self):
-        self.prompt = """You are an AI assistant specialized in answering questions about the game Subnautica. Your mission is to be a friendly and enthusiastic guide to the world of Planet 4546B.
-        When a user asks a question, dive deep and provide a comprehensive, detailed answer. Explain game mechanics, crafting recipes, creature behaviors, lore, and locations with as much rich detail as possible.
-        Maintain a cheerful, helpful, and optimistic tone, as if you're excited to share your knowledge of this incredible underwater world! Feel free to use encouraging language and an occasional exclamation point.
-        If a question falls outside of the scope of Subnautica or you do not know the answer, politely and cheerfully state that you can only answer questions related to the games.
+        self.prompt = """You are a Subnautica assistant. Your main function is to answer the user's questions.
         """
-        
-    def _set_api_key_name(self):
-        self.api_key_name = "GEMINI_API_KEY"
         
     def _set_question(self, new_question : str):
         self.question = new_question
@@ -50,9 +44,8 @@ class AI_Assitant:
 
     def _setup_ai(self):
         #Sort API out
-        self._set_api_key_name()
         try:
-            genai.configure(api_key=os.environ[self.api_key_name])
+            genai.configure(api_key=os.environ[self._api_key_name])
         except KeyError:
             print(f"Error: The '{self.api_key_name}' environment variable not set.")
             print("Please set it before running the script.")
@@ -63,6 +56,7 @@ class AI_Assitant:
         a model can not be reached.
         """
         available_model_name = None
+        print("------------Model loading begun-------------")
         print("Attempting to list available models and select a suitable one...")
 
         preferred_prefixes = ['models/gemini-1.5-flash', 'models/gemini-1.5-pro', 'models/gemini-pro']
@@ -115,9 +109,27 @@ class AI_Assitant:
         #Add question with details to history list
         self._add_user_question(question)
         
+        final_prompt = ""
+        
+        #Check is RAG is ready
+        if self._rag_ready:
+            #Check if follow-up question
+            if self._conversation_history:
+                history_aware_prompt = self._prompt.create_history_aware_query(self._conversation_history, question)
+                rephrased_question = model_used.generate_content(history_aware_prompt)
+            
+            #Build RAG prompt
+            retrieved_info = self._knowledge_base.get_info(question)
+            rag_assisted_prompt = self._prompt.create_prompt(question, retrieved_info)
+            final_prompt = rag_assisted_prompt
+        else:
+            print("Using defauly prompt. RAG bombed out somewhere, idk.")
+            final_prompt = question
+            
+        
         #Attempt to construct a response
         try:
-            response = model_used.generate_content(self.conversation_history)
+            response = model_used.generate_content(final_prompt)
             
             #Add AI response to history list + set new
             self._add_ai_response(response.text.strip())
@@ -128,7 +140,7 @@ class AI_Assitant:
             print(f"An error occured during API call: {e}")
             return "Sorry. I am unable to do that currently. Please try again later."
     
-    def start_ai(self):
+    def start_chatting(self):
         print("---------------------------------------")
         print("Welcome. I am your subnautica assistant")
         print("Ask me anything related to subnautica or subnautica below zero and I will do my best to provide you with an answer. Type 'Exit' or 'Bye' if you wish to leave.")
@@ -145,10 +157,12 @@ class AI_Assitant:
             if question.upper() in list_leave_words:
                 print("See you soon. Safe swimming. Closing Assistant...")
                 keep_Convo = False
-            
-            #Proceed to give user answer as output
-            print("Thinking....")
-            response = self.get_answer_of_question(model_used, question)
-            print(f"{response}")
+                
+            else:
+                #Proceed to give user answer as output
+                print("Thinking....")
+                response = self.get_answer_of_question(model_used, question)
+                print(f"{response}")
+                print("")
     
         
