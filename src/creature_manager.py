@@ -1,6 +1,8 @@
 import sqlite3
 from typing import List, Optional
 import time
+import json
+import os
 
 from creature import Creature
 
@@ -58,18 +60,17 @@ class CreatureManager:
         cursor.close()
         conn.close()
     
-    def _add_creature(self, name : str, category : str, behavior : str, min_depth : int, max_depth : int
-                      , danger_level : str, pda_entry : str, img_url : str):  
+    def _add_creature(self, name : str, category : str, behavior : str, min_depth : int, 
+                      max_depth : int, pda_entry : str, img_url : str):  
         conn = self._connect()
         if conn:
             cursor = conn.cursor()
             try:
                 cursor.execute('''
-                               INSERT INTO (name, category, behavior, min_depth, max_depth, danger_level, pda_entry, img_url)
-                               VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                               ''', (name, category, behavior, min_depth, max_depth, danger_level, pda_entry, img_url))
+                               INSERT INTO creatures (name, category, behavior, min_depth, max_depth, pda_entry, img_url)
+                               VALUES (?, ?, ?, ?, ?, ?, ?)
+                               ''', (name, category, behavior, min_depth, max_depth, pda_entry, img_url),)
                 conn.commit()
-                return cursor.lastrowid
             except sqlite3.IntegrityError:
                 print(f"Error: Creature : {name} already added.")
             except sqlite3.Error as e:
@@ -105,11 +106,10 @@ class CreatureManager:
             cursor = conn.cursor()
             try:
                 cursor.execute('''
-                               INSERT INTO (name)
+                               INSERT INTO biomes (name)
                                VALUES (?)
-                               ''', (name))
+                               ''', (name, ))
                 conn.commit()
-                return cursor.lastrowid
             except sqlite3.IntegrityError:
                 print(f"Error: Biome : {name} already added.")
             except sqlite3.Error as e:
@@ -128,10 +128,10 @@ class CreatureManager:
             cursor.execute('''
                            CREATE TABLE IF NOT EXISTS creature_biomes (
                                creature_id INTEGER NOT NULL,
-                               biome_id NOT NULL,
+                               biome_id INTEGER NOT NULL,
                                PRIMARY KEY (creature_id, biome_id),
-                               FOREIGN KEY (creature_id) REFRENCES creature(creaure_id) ON DELETE CASCADE,
-                               FOREIGN KEY (biome_id) REFRENCES biomes(biome_id) ON DELETE CASCADE
+                               FOREIGN KEY (creature_id) REFERENCES creatures(creaure_id) ON DELETE CASCADE,
+                               FOREIGN KEY (biome_id) REFERENCES biomes(biome_id) ON DELETE CASCADE
                            )
                            ''')
             conn.commit()
@@ -148,7 +148,7 @@ class CreatureManager:
             cursor = conn.cursor()
             try:
                 cursor.execute('''
-                               INSERT INTO (creature_id, biome_id)
+                               INSERT INTO creature_biomes (creature_id, biome_id)
                                VALUES (?, ?)
                                ''', (creature_id, biome_id))
                 conn.commit()
@@ -159,74 +159,148 @@ class CreatureManager:
         cursor.close()
         conn.close() 
         
-    def _populate_intial_creature_data(self):
-        creature_id = self._add_creature()
-        biome_id = self._add_biome()
-        self._add_creature_biome(creature_id, biome_id)
+    def _get_creature_id(self, name : str):
+        conn = self._connect()
+        if conn:
+            cursor = conn.cursor()
+            query = "SELECT creature_id FROM creatures WHERE name = ?"
+            cursor.execute(query, (name, ))
+            creature_id = cursor.fetchone()
+            cursor.close()
+            conn.close()
+            if creature_id:
+                return creature_id[0]
+            else:
+                print("No creature_id to return")
+        else:
+            print('Could not connect to database.')
+            return None
             
+    def _get_biome_id(self, name : str):
+        conn = self._connect()
+        if conn:
+            cursor = conn.cursor()
+            query = "SELECT biome_id FROM biomes WHERE name = ?"
+            cursor.execute(query, (name, ))
+            biome_id = cursor.fetchone()
+            cursor.close()
+            conn.close()
+            if biome_id:
+                return biome_id[0]
+            else:
+                print("No biome_id to return")
+        else:
+            print('Could not connect to database.')
+            return None
         
+    def delete_tables(self):
+        conn = sqlite3.connect(self.db_name)
+        cursor = conn.cursor()
+
+        cursor.execute("DROP TABLE IF EXISTS creature_biomes")   
+        cursor.execute("DROP TABLE IF EXISTS creatures")
+        cursor.execute("DROP TABLE IF EXISTS biomes")
+        conn.commit()
+        conn.close()
+        print("Table Deleted.")
+        
+        
+    def _populate_intial_creature_data(self):
+        #Open creature details json
+        print("Opening creature_data.json...")
+        creature_data_file = os.path.join("src",  "initial_data", "creature_data.json" )
+        with open (creature_data_file, "r", encoding="utf-8") as creature_file:
+            #Add each creature to the database
+            creatures = json.load(creature_file)
+            for creature_record in creatures:
+                self._add_creature(creature_record['name'],
+                                    creature_record['category'],
+                                    creature_record['behavior'],
+                                    creature_record['min_depth'],
+                                    creature_record['max_depth'],
+                                    creature_record['pda_entry'],
+                                    creature_record['img_url'])
+        print("Creatures added to database.")
+        
+        #Open biome details json
+        print("Opening biome_data.json...")
+        biome_data_file = os.path.join("src", "initial_data", "biome_data.json" )
+        with open (biome_data_file, "r", encoding="utf-8") as biome_file: 
+            #Add biomes to table
+            biomes = json.load(biome_file) 
+            for biome_record in biomes: 
+                self._add_biome(biome_record['name'])
                 
-    def _populate_initial_data(self):
-        """
-        This will populate the creature table in the database in the first run of the program
-        """
+        print("Biomes added to database.")
         
-        self._add_Creature("Peeper", "Fish", "Safe Shallows, Kelp Forest, Grassy Plateaus, Mushroom Forest, Sparse Reef", "Passive, Scavenger", "Low", "0-250m", "A small, common herbivore. Its large eye is a curious adaptation to low light conditions.", "https://static.wikia.nocookie.net/subnautica/images/a/ae/Peeper.png")
-        self._add_Creature("Garryfish", "Fish", "Safe Shallows", "Passive, Flighty", "Very Low", "0-50m", "A small, fast-moving fish often found in shallow waters. Known for its quick bursts of speed.", "https://static.wikia.nocookie.net/subnautica/images/e/ef/Garryfish.png")
-        self._add_Creature("Bladderfish", "Fish", "Safe Shallows, Kelp Forest", "Passive", "Very Low", "0-100m", "Contains internal air sacs that allow it to generate drinkable water when cooked, or breathable oxygen when alive.", "https://static.wikia.nocookie.net/subnautica/images/2/23/Bladderfish.png")
-        self._add_Creature("Spinefish", "Fish", "Grassy Plateaus, Safe Shallows", "Passive, Defensive (spines)", "Low", "0-100m", "A small, bony fish with defensive spines. Offers little nutritional value.", "https://static.wikia.nocookie.net/subnautica/images/8/87/Spinefish.png")
-        self._add_Creature("Holefish", "Fish", "Safe Shallows", "Passive", "Very Low", "0-50m", "A small fish with a distinctive hole through its body. Edible.", "https://static.wikia.nocookie.net/subnautica/images/c/c2/Holefish.png")
-        self._add_Creature("Boomerang", "Fish", "Safe Shallows, Kelp Forest", "Passive", "Very Low", "0-100m", "Named for its distinctive shape, this fish is a common sight in shallow waters.", "https://static.wikia.nocookie.net/subnautica/images/7/7b/Boomerang.png")
-        self._add_Creature("Eyeye", "Fish", "Kelp Forest, Safe Shallows, Grassy Plateaus", "Passive", "Low", "0-200m", "A small fish with a large, bioluminescent eye. Primarily found near kelp forests.", "https://static.wikia.nocookie.net/subnautica/images/0/05/Eyeye.png")
-        self._add_Creature("Hoverfish", "Fish", "Safe Shallows, Grassy Plateaus", "Passive, Docile", "Very Low", "0-100m", "A curious, docile fish that hovers in the water, making it easy to catch.", "https://static.wikia.nocookie.net/subnautica/images/4/4c/Hoverfish.png")
-        self._add_Creature("Gasopod", "Herbivore", "Safe Shallows, Grassy Plateaus, Mushroom Forest", "Defensive (releases gas)", "Medium", "0-100m", "A passive herbivore that releases poisonous gas pods when threatened.", "https://static.wikia.nocookie.net/subnautica/images/3/36/Gasopod.png")
-        self._add_Creature("Reefback Leviathan", "Leviathan, Herbivore", "Safe Shallows, Grassy Plateaus, Grand Reef, Sea Treader's Tunnel, Bulb Zone", "Passive, Migratory", "Low", "0-500m", "A docile, enormous leviathan-class herbivore. Its shell supports a complex ecosystem.", "https://static.wikia.nocookie.net/subnautica/images/6/60/Reefback_Leviathan_Scan.png")
-        self._add_Creature("Rabbit Ray", "Fish", "Safe Shallows, Grassy Plateaus", "Passive, Curious", "Very Low", "0-100m", "A docile herbivore, easily startled, but known to approach divers out of curiosity.", "https://static.wikia.nocookie.net/subnautica/images/7/7b/Rabbit_Ray.png")
-        self._add_Creature("Cuddlefish", "Companion", "Lost River (Egg), Deep Grand Reef (Egg), Dunes (Egg), Mushroom Forest (Egg)", "Passive, Playful, Companion", "None", "0-1700m", "An ancient, highly intelligent, and docile species with complex emotional responses. Can be befriended.", "https://static.wikia.nocookie.net/subnautica/images/8/87/Cuddlefish.png")
-        self._add_Creature("Jellyray", "Filter Feeder", "Grand Reef, Bulb Zone", "Passive, Filter Feeder", "Low", "100-800m", "A large, graceful filter feeder with bioluminescent fins. Gentle and majestic.", "https://static.wikia.nocookie.net/subnautica/images/6/60/Jellyray.png")
-        self._add_Creature("Shuttlebug", "Filter Feeder", "Blood Kelp Zone", "Passive, Filter Feeder", "Very Low", "300-800m", "A small, resilient filter feeder that can survive in harsh environments.", "https://static.wikia.nocookie.net/subnautica/images/c/c3/Shuttlebug.png")
-        self._add_Creature("Skyray", "Filter Feeder", "Floating Island, Mountain Island (surface/shallow water)", "Passive, Filter Feeder", "Very Low", "0-10m", "An aerial filter feeder that glides above the water, occasionally dipping down to feed.", "https://static.wikia.nocookie.net/subnautica/images/4/4c/Skyray.png")
-        self._add_Creature("Floater (Small)", "Detritivore", "Safe Shallows, Kelp Forest, Grassy Plateaus (attaches to objects/creatures)", "Passive, Attaches to objects", "Very Low", "0-500m", "A symbiotic organism that attaches to objects, causing them to float. Non-aggressive.", "https://static.wikia.nocookie.net/subnautica/images/a/ae/Floater.png")
-        self._add_Creature("Floater (Large)", "Detritivore", "Floating Island", "Passive, Attaches to objects", "Very Low", "0-50m", "A larger variant of the floater, responsible for the buoyancy of the Floating Island.", "https://static.wikia.nocookie.net/subnautica/images/a/ae/Floater.png")
-        self._add_Creature("Sea Treader Leviathan", "Leviathan, Herbivore", "Sea Treader's Path", "Passive, Migratory", "Medium", "100-300m", "A massive, docile leviathan that 'treads' the seafloor, uncovering valuable resources.", "https://static.wikia.nocookie.net/subnautica/images/5/5e/Sea_Treader_Leviathan.png")
-        self._add_Creature("Biter", "Fish", "Kelp Forest, Safe Shallows (rare), Blood Kelp Zone, Grassy Plateaus", "Aggressive", "Low", "0-400m", "A small, aggressive carnivore that attacks on sight.", "https://static.wikia.nocookie.net/subnautica/images/4/47/Biter.png")
-        self._add_Creature("Bleeder", "Parasite", "Aurora, Blood Kelp Zone, Sparse Reef, Sea Treader's Path", "Aggressive, Parasitic", "Low", "0-500m", "A parasitic creature that attaches to organisms and drains blood. Dangerous in groups.", "https://static.wikia.nocookie.net/subnautica/images/4/42/Bleeder.png")
-        self._add_Creature("Stalker", "Carnivore", "Kelp Forest, Grassy Plateaus", "Territorial, Curious (steals metal)", "Medium", "0-200m", "An aggressive predator known for collecting metal salvage, possibly for its den.", "https://static.wikia.nocookie.net/subnautica/images/d/d4/Stalker_Scan.png")
-        self._add_Creature("Crabsnake", "Fauna", "Jellyshroom Cave", "Aggressive, Ambush Predator", "High", "100-300m", "A highly aggressive creature that hides within Jellyshrooms, striking out at passing vehicles and divers.", "https://static.wikia.nocookie.net/subnautica/images/a/a2/Crabsnake_Scan.png")
-        self._add_Creature("Bone Shark", "Carnivore", "Grand Reef, Bulb Zone, Blood Kelp Zone, Mountains", "Aggressive, Territorial", "High", "100-800m", "A heavily armored predator capable of significant damage. Attacks vehicles relentlessly.", "https://static.wikia.nocookie.net/subnautica/images/2/22/Bone_Shark.png")
-        self._add_Creature("Crashfish", "Carnivore, Explosive", "Safe Shallows, Kelp Forest, Grassy Plateaus (found in Sulfur Plants)", "Aggressive, Suicidal (explodes)", "High", "0-100m", "A highly aggressive, territorial creature that charges intruders and explodes upon contact.", "https://static.wikia.nocookie.net/subnautica/images/d/d4/Crashfish.png")
-        self._add_Creature("Cave Crawler", "Carnivore", "Safe Shallows (Caves), Kelp Forest (Caves), Grassy Plateaus (Caves), Aurora", "Aggressive, Swarming", "Low", "0-300m", "A small, scuttling arthropod that swarms perceived threats. Primarily found in caves and wreckages.", "https://static.wikia.nocookie.net/subnautica/images/2/22/Cave_Crawler.png")
-        self._add_Creature("Ampeel", "Leviathan", "Blood Kelp Zone, Grand Reef", "Aggressive, Electric", "High", "100-800m", "A large, serpentine predator that uses electrical discharges to incapacitate prey.", "https://static.wikia.nocookie.net/subnautica/images/6/6f/Ampeel_Scan.png")
-        self._add_Creature("Crab Squid", "Carnivore", "Grand Reef, Blood Kelp Zone (South)", "Aggressive, EMP pulse", "High", "200-800m", "An amphibious predator that uses EMP pulses to disable electronics before attacking.", "https://static.wikia.nocookie.net/subnautica/images/6/6b/Crab_Squid.png")
-        self._add_Creature("Lava Larva", "Parasite, Energy Drainer", "Inactive Lava Zone, Active Lava Zone, Lost River", "Aggressive, Parasitic (drains power)", "Medium", "700-1700m", "A parasitic creature that attaches to vehicles and drains their power cells.", "https://static.wikia.nocookie.net/subnautica/images/4/4c/Lava_Larva.png")
-        self._add_Creature("Lava Lizard", "Carnivore", "Inactive Lava Zone, Active Lava Zone, Lava Castle", "Aggressive, Fire-resistant", "Medium", "800-1700m", "A heat-resistant carnivore that can launch volcanic projectiles. Found exclusively in lava zones.", "https://static.wikia.nocookie.net/subnautica/images/d/d4/Lava_Lizard.png")
-        self._add_Creature("Mesmer", "Carnivore", "Blood Kelp Zone, Grand Reef, Sea Treader's Path", "Aggressive, Hypnotic", "High", "100-600m", "A master of hypnotic camouflage, luring prey with visual and auditory deception before attacking.", "https://static.wikia.nocookie.net/subnautica/images/6/6b/Mesmer.png")
-        self._add_Creature("River Prowler", "Carnivore", "Lost River", "Aggressive, Territorial", "High", "400-900m", "An agile, territorial predator found in the Lost River. Possesses powerful jaws.", "https://static.wikia.nocookie.net/subnautica/images/2/22/River_Prowler.png")
-        self._add_Creature("Warper", "Aggressive, Alien", "Lost River, Inactive Lava Zone, Blood Kelp Zone, Alien Bases", "Aggressive, Teleportation, Infection hunter", "Extreme", "200-1700m", "An alien construct designed to contain the Kharaa bacterium. Capable of teleporting targets.", "https://static.wikia.nocookie.net/subnautica/images/4/47/Warper.png")
-        self._add_Creature("Reaper Leviathan", "Leviathan", "Crash Zone, Mountains, Dunes", "Aggressive, Territorial, Apex Predator", "Extreme", "50-1000m", "Apex predator. Displays extreme territoriality and will attack any perceived threat on sight. Avoid at all costs.", "https://static.wikia.nocookie.net/subnautica/images/2/22/Reaper_Leviathan_Scan.png")
-        self._add_Creature("Sea Dragon Leviathan", "Leviathan", "Inactive Lava Zone, Active Lava Zone", "Aggressive, Fire-breather", "Extreme", "900-1700m", "Massive leviathan, capable of spitting molten rock and superheated plasma.", "https://static.wikia.nocookie.net/subnautica/images/6/6b/Sea_Dragon_Leviathan_Scan.png")
-        self._add_Creature("Ghost Leviathan", "Leviathan", "Lost River, Grand Reef (Juvenile), Void (Adult)", "Aggressive, Highly Territorial", "Extreme", "400-3000m", "Large, translucent leviathan. Juveniles are territorial, adults patrol the ecological dead zone.", "https://static.wikia.nocookie.net/subnautica/images/c/c3/Ghost_Leviathan_Juvenile_Scan.png")
-       
+        #Open creature_biomes details json
+        creature_biome_data_file = os.path.join("src", "initial_data", "creature_biomes.json" )
+        with open (creature_biome_data_file, "r", encoding="utf-8") as file:
+            creature_biomes = json.load(file)
+            
+            #Loop for all records in file
+            for creature_biomes_record in creature_biomes:
+                creature_name = creature_biomes_record['creature_name']
+                list_biomes = creature_biomes_record['biomes']
+                
+                #if creature name not empty
+                if creature_name:
+                    creature_id = self._get_creature_id(creature_name)
+                    
+                    #if list not empty
+                    if list_biomes:
+                        for biome in list_biomes:
+                            biome_id = self._get_biome_id(biome)
+                            self._add_creature_biome(creature_id, biome_id)
+                
         
-    def check_creaturesDB(self):
+        
+        
+        #self._add_creature_biome(creature_id, biome_id)
+            
+    def check_db_creature_details(self):
         #Connect to DB
         with self._connect() as conn:
             if not conn:
                 print("Could not connect to database.")
                 return
 
-        #Check if table exists
+        #Check if all tables exists and count its records
         cursor = conn.cursor()
+        
+        #Creature Table
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='creatures'")
         if cursor.fetchone() is None:
-            self._create_CreatureTable()
-
-        #Check if table is empty
+            self._create_tblcreatures()
+            
+        #Count Records
         cursor.execute("SELECT COUNT(*) FROM creatures")
-        result = cursor.fetchone()
-        if result and result[0] == 0:
-            self._populate_initial_data()
+        creature_tot_record = cursor.fetchone()
+            
+        #Biome Table
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='biomes'")
+        if cursor.fetchone() is None:
+            self._create_tblbiomes()
+            
+        #Count Records
+        cursor.execute("SELECT COUNT(*) FROM biomes")
+        biome_tot_record = cursor.fetchone()
+            
+        #Creature_biome table
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='creature_biomes'")
+        if cursor.fetchone() is None:
+            self._create_tblcreature_biome()
+            
+        #Count Records
+        cursor.execute("SELECT COUNT(*) FROM creature_biomes")
+        creature_biome_tot_record = cursor.fetchone()
+            
+        #Check if population is needed
+        if creature_tot_record[0] == 0 and biome_tot_record[0] == 0 and creature_biome_tot_record[0] == 0:
+            self._populate_intial_creature_data()
 
+        self._populate_intial_creature_data()
+        
         cursor.close()
         conn.close()
         
