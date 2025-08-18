@@ -1,8 +1,8 @@
 """ MODULE DESCRIPTION
-Contains the menus for the command-line interface. Currently it include the main menu and encyclopedia menu.
+Contains the menus for the command-line interface. Currently it include the main menu, encyclopedia menu and fragment lookup.
 The user selcted option also gets pushed to here, type and range validation takes place here
 """
-class Menu:
+class MainMenu:
     """
     CLI-Menus are accessed from here. Get user input and validate the input
     
@@ -19,9 +19,9 @@ class Menu:
         print("==========================")
         print("What would you like to do do?")
         print("[0] Exit")
-        print("[1] Search Blueprint")
+        print("[1] Search Fragments")
         print("[2] View creature encyclopedia")
-        print("[3] Personal Logbook")
+        print("[3] Personal Logbook - Under Discussion")
         print("[4] AI Assitant")
     
     def get_User_Option(self):
@@ -49,6 +49,10 @@ class Menu:
     def exit_program(self):
         print("Safe Travels. Exiting the Assitant...")
         exit()
+       
+class Encyclopedia(MainMenu):
+    def __init__(self, option : int = None):
+        self.option = option
         
     def load_encyclopedia_menu(self):
         print("===========================\nENCYCLOPEDIA\n===============================")
@@ -58,7 +62,7 @@ class Menu:
         print("[2] Search for creatures in a certain biome")
         print("[3] Search for creatures in a certain category")
         
-    def validate_encyclopedia_option(self, option : int):
+    def validate_encyclopedia_option(self, option : int = None):
         self._set_user_option
         if (option >= 0) and (option <= 3):
             return True
@@ -66,4 +70,21 @@ class Menu:
             print("Invalid Option. Please select an integer option in the given range.")
             return False
         
+class FragmentLookUp(MainMenu):
+    def __init__(self, option : int = None):
+        self.option = option
+    
+    def load_fragment_lookup_menu(self):
+        print("============================\nFragment Lookup\n============================")
+        print("[0] Return to Main Menu")
+        print("[1] Search for fragment by name")
+        print("[2] Search for fragments in certain biome")
+        print("[3] Search fragments by depth-level")
         
+    def validate_fragment_lookup_option(self, option : int = None):
+        self._set_user_option
+        if (option >= 0) and (option <= 3):
+            return True
+        else:
+            print("Invalid Option. Please select an integer option in the given range.")
+            return False
