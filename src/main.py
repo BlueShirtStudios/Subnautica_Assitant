@@ -1,6 +1,7 @@
-from creature_manger import CreatureManager
+from creature_manager import CreatureManager
+from fragment_manager import Fragment_Manager
 from ai_assitant import AI_Assitant
-from menu import Menu
+from menu import MainMenu, Encyclopedia, FragmentLookUp
 
 DB_NAME = "subnautica.db"
 
@@ -10,33 +11,62 @@ which will display the options for the user that can be done. The user's input w
 will be done.
 """
 #Create an instance of the MainMenu Class
-obj_main_menu = Menu()
+main_menu = MainMenu()
     
 continue_program = True
 
 while continue_program == True:
     #Create the interface + Asks input from user + Vaildate until correct
-    obj_main_menu.intailize_MainMenu()
-    main_Option = obj_main_menu.get_User_Option()
-    while obj_main_menu.validate_main_option(main_Option) == False:
-        main_Option = obj_main_menu.get_User_Option()
+    main_menu.intailize_MainMenu()
+    main_Option = main_menu.get_User_Option()
+    while main_menu.validate_main_option(main_Option) == False:
+        main_Option = main_menu.get_User_Option()
 
     #Depending on user option, will carry out certain operation
     match main_Option:
         case 0: #Exit Program
             continue_program = False
-            obj_main_menu.exit_program()
+            main_menu.exit_program()
         
-        case 1: #Blue Print Lookup
-            print("Insert code here...")
+        case 1: #Fragment Look Up
+            continue_fragment_lookup = True
+            
+            #Create Fragment and fragment manager object instance
+            fragment_manager = Fragment_Manager(DB_NAME)
+            fragment_manager.check_fragment_table()
+            fragment_lookup_menu = FragmentLookUp()
+            
+            while continue_fragment_lookup == True:
+                #Create CLI-Menu and Validate Input
+                fragment_lookup_menu.load_fragment_lookup_menu()
+                fragment_lookup_option = fragment_lookup_menu.get_User_Option()
+                while fragment_lookup_menu.validate_fragment_lookup_option(fragment_lookup_option) != True:
+                    fragment_lookup_option = fragment_lookup_menu.get_User_Option()
+                
+                #Depending on option, will carry out action
+                match fragment_lookup_option:
+                    case 0: #Exit Fragment Lookup
+                        continue_fragment_lookup = False
+                        continue
+                    
+                    case 1: #Search for Fragment By Name
+                        fragment_name = input("What is the fragment you are looking for? ")
+                        fragment_manager.get_fragment_by_name(fragment_name)
+                        continue
+            
+            
+            
         
         case 2: #Creature Enclycopedia        
             continue_encyclopedia = True
             
             #Create Creature Manager and Encyclopedia object instance
             creature_manager = CreatureManager(DB_NAME)
-            creature_manager.check_creaturesDB()
-            encyclopedia_menu = Menu()
+            if creature_manager.check_db_creature_details() == False:
+                print("Check is unsuccessfull, table creation or table population was problematic")
+                main_menu.exit_program()
+                
+            encyclopedia_menu = Encyclopedia()
             
             while continue_encyclopedia == True:
                 #Create Menu for Encyclopedia + Get option and Validate
@@ -53,7 +83,7 @@ while continue_program == True:
                     
                     case 1:
                         search_creature = input("What creature are you looking for? ")
-                        if search_creature == 0:
+                        if search_creature == " ":
                             continue
                         else:
                             creature_manager.get_creature_by_name(search_creature)
@@ -69,7 +99,7 @@ while continue_program == True:
                         creature_manager.get_creature_by_category(search_category)
                         continue
                     
-        case 1: #IDK this part is under discussion
+        case 3: #IDK this part is under discussion
             print("Insert code here...")
         
         case 4:
