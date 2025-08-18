@@ -62,8 +62,10 @@ while continue_program == True:
             
             #Create Creature Manager and Encyclopedia object instance
             creature_manager = CreatureManager(DB_NAME)
-            creature_manager.delete_tables()
-            creature_manager.check_db_creature_details()
+            if creature_manager.check_db_creature_details() == False:
+                print("Check is unsuccessfull, table creation or table population was problematic")
+                main_menu.exit_program()
+                
             encyclopedia_menu = Encyclopedia()
             
             while continue_encyclopedia == True:

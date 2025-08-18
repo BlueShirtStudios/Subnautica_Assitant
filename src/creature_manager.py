@@ -193,7 +193,7 @@ class CreatureManager:
             print('Could not connect to database.')
             return None
         
-    def delete_tables(self):
+    def delete_tables(self): #ONLY USE WHEN CAUSING POPULATION ISSUES
         conn = sqlite3.connect(self.db_name)
         cursor = conn.cursor()
 
@@ -243,21 +243,30 @@ class CreatureManager:
                 creature_name = creature_biomes_record['creature_name']
                 list_biomes = creature_biomes_record['biomes']
                 
+                print(f"Creature : {creature_name}")
+                print(f"Biome list: {list_biomes}")
+                
                 #if creature name not empty
                 if creature_name:
                     creature_id = self._get_creature_id(creature_name)
+                    print("Attempting to Add......")
+                    print(f"Creature: {creature_name} Creature ID: {creature_id}")
                     
                     #if list not empty
                     if list_biomes:
                         for biome in list_biomes:
                             biome_id = self._get_biome_id(biome)
-                            self._add_creature_biome(creature_id, biome_id)
-                
+                            
+                            try:
+                                print(f"Attempting to add: Biome: {biome} Biome ID: {biome_id}")
+                                self._add_creature_biome(creature_id, biome_id)
         
-        
-        
-        #self._add_creature_biome(creature_id, biome_id)
-            
+                            except KeyError as e:
+                                print(f"There was an issue: {e}")
+                    print("SUCCESSFULL\n--------------------------------------------------------------------------")
+                            
+                time.sleep(2)
+                    
     def check_db_creature_details(self):
         #Connect to DB
         with self._connect() as conn:
@@ -298,47 +307,86 @@ class CreatureManager:
         #Check if population is needed
         if creature_tot_record[0] == 0 and biome_tot_record[0] == 0 and creature_biome_tot_record[0] == 0:
             self._populate_intial_creature_data()
-
-        self._populate_intial_creature_data()
-        
+    
         cursor.close()
         conn.close()
         
+        return True
+    
     def get_creature_by_name(self, creature_name : str):
         #Connect to DB
-        with self._connect() as conn:
-            if not conn:
-                print("Could not connect to database.")
-                return
+        conn = self._connect()
         
         #Setup Query
         cursor = conn.cursor()
         sql_query = "SELECT * FROM creatures WHERE name LIKE ?"
-        cursor.execute(sql_query, (f"%{creature_name}%", ))    
+        cursor.execute(sql_query, (f"%{creature_name}%", ))   
         
         #Add the record to the creature object 
         tuple_all_records = cursor.fetchall()
         if tuple_all_records:
+            #Intailize
+            index_number = 0
+            list_names = []
+            
+            #Loop to get all biomes of the creature
             print("Retreiving information on all creatures with similer name...")
-            print("------------------------------------------------------------")
-            for tuple_db_record in tuple_all_records: 
+            for tuple_db_record in tuple_all_records:
+                #Assign Values to creature object
                 creature.set_creature_id(tuple_db_record[0])
                 creature.set_name(tuple_db_record[1])
                 creature.set_category(tuple_db_record[2])
-                creature.set_biomes(tuple_db_record[3].split(',') if tuple_db_record[3] else [])
-                creature.set_behavior(tuple_db_record[4])
-                creature.set_danger_level(tuple_db_record[5])
-                creature.set_depth_level(tuple_db_record[6])
-                creature.set_pda_entry(tuple_db_record[7])
-                creature.set_img_url(tuple_db_record[8])
+                creature.set_behavior(tuple_db_record[3])
+                creature.set_min_depth(tuple_db_record[4])
+                creature.set_max_depth(tuple_db_record[5])
+                creature.set_pda_entry(tuple_db_record[6])
+                creature.set_img_url(tuple_db_record[7])
                 
-                #Print the results
-                creature.display_creature_info()  
+                #Add creature to list 
+                list_names.append(creature.get_name())
+                possible_creature_name = list_names[index_number]
+                index_number += 1
+                
+                #Re-intialize
+                list_biome_id = []
+                list_biomes = []
+                
+                #Get the creature id
+                creature.set_creature_id(tuple_db_record[0])
+                creature_id = creature.get_creature_id()
+                
+                #Get all biome IDs of that creature ID
+                sql_query = "SELECT biome_id FROM creature_biomes WHERE creature_id = ?"
+                cursor.execute(sql_query, (creature_id, ) )
+                tuple_rows = cursor.fetchall()
+                for row in tuple_rows:
+                    list_biome_id.append(row[0])
+                
+                #Construct new query to get the biome names
+                sql_query = "SELECT name FROM biomes WHERE biome_id = ?"
+                for biome_id in list_biome_id:
+                    cursor.execute(sql_query, (biome_id, ))
+                    tuple_biome_name = cursor.fetchall()
+                    list_biomes.append(tuple_biome_name[0])
+
+                #Assign biomes to creature
+                creature.set_biomes(list_biomes)
+                
+                #Display the results
                 print("------------------------------------------------------------")
-                time.sleep(5)
-                 
+                creature.display_creature_info()   
+                time.sleep(2)    
         else:
             print("No creature found with such name. Please make sure that the creature does exist.")
+            
+        if len(list_names) > 1:
+                possible_name_string = ', '.join(list_names)
+        elif len(list_names) == 1:
+                possible_name_string = list_names[0]
+        else:
+            possible_name_string = ''
+        print("")       
+        print(f"Retrieved all informarion on : {possible_name_string}. Were these the results you were looking for?")
             
         cursor.close()
         conn.close()
@@ -352,25 +400,44 @@ class CreatureManager:
             
         #Create Query
         cursor = conn.cursor()
-        sql_query = "SELECT * FROM creatures WHERE biomes LIKE ?"
+        sql_query = "SELECT biome_id FROM biomes WHERE name LIKE ?"
         cursor.execute(sql_query, (f"%{search_biome}%", ))    
         
-        #Add the record to the creature object 
+        #Retreive the results
         tuple_all_records = cursor.fetchall()
         if tuple_all_records:
+            index_main = 0
             print(f"Searching for creatures in {search_biome}...")
             print("------------------------------------------------------------")
-            for tuple_db_record in tuple_all_records:
-                creature.set_name(tuple_db_record[1])
-                creature.set_category(tuple_db_record[2])
-                creature.set_behavior(tuple_db_record[4])
-                creature.set_danger_level(tuple_db_record[5])
-                        
-                #Get Results
-                result = f"Name: {creature.get_name()}\nCategory: {creature.get_category()}\nBehavior: {creature.get_behavior()}\nDanger-level: {creature.get_danger_level()}\n" 
-                print(result) 
-                print("------------------------------------------------------------")
-                time.sleep(2)           
+            
+            #Get which biome it is
+            sql_query = "SELECT creature_id FROM creature_biomes WHERE biome_id = ?"
+            for biome_id in tuple_all_records:
+                cursor.execute(sql_query, (biome_id[0], ))
+                
+                #Get creatrures that live in that biome
+                creature_ids = cursor.fetchall()
+                for creature_id in creature_ids:
+                    
+                    creature.set_creature_id(creature_id[0])
+                    
+                    #Search for the creature details an return results
+                    sql_query = "SELECT * FROM creatures WHERE creature_id = ?"
+                    cursor.execute(sql_query, (creature.get_creature_id(), ) )
+                    tuple_creature_record = cursor.fetchall()
+                    
+                    #Assign to Creature
+                    creature.set_name(tuple_creature_record[0][1])
+                    creature.set_category(tuple_creature_record[0][2])
+                    creature.set_behavior(tuple_creature_record[0][3])
+                    
+                            
+                    #Get Results
+                    result = f"Name: {creature.get_name()}\nCategory: {creature.get_category()}\nBehavior: {creature.get_behavior()}"
+                    print(result)
+                    print("------------------------------------------------------------")
+                    time.sleep(2)   
+                         
         else:
             print("Creatures in biome not found. Please make sure your searched biome exists.")
     
@@ -392,14 +459,41 @@ class CreatureManager:
             print(f"Searching for creatures in {search_category}...\n")
             print("------------------------------------------------------------")
             for tuple_db_record in tuple_all_records:
+                creature.set_creature_id(tuple_db_record[0])
                 creature.set_name(tuple_db_record[1])
-                creature.set_biomes(tuple_db_record[3].split(',') if tuple_db_record[3] else [])
-                creature.set_danger_level(tuple_db_record[5])
-                creature.set_depth_level(tuple_db_record[6])
-                creature.set_pda_entry(tuple_db_record[7])
+                creature.set_behavior(tuple_db_record[3])
+                creature.set_min_depth(tuple_db_record[4])
+                creature.set_max_depth(tuple_db_record[5])
+                creature.set_pda_entry(tuple_db_record[6])
+                
+                #Re-intialize
+                list_biome_id = []
+                list_biomes = []
+                list_clean_biomes = []
+            
+                creature_id = creature.get_creature_id()
+                
+                #Get all biome IDs of that creature ID
+                sql_query = "SELECT biome_id FROM creature_biomes WHERE creature_id = ?"
+                cursor.execute(sql_query, (creature_id, ) )
+                tuple_rows = cursor.fetchall()
+                for row in tuple_rows:
+                    list_biome_id.append(row[0])
+                
+                #Construct new query to get the biome names
+                sql_query = "SELECT name FROM biomes WHERE biome_id = ?"
+                for biome_id in list_biome_id:
+                    cursor.execute(sql_query, (biome_id, ))
+                    tuple_biome_name = cursor.fetchall()
+                    list_biomes.append(tuple_biome_name[0])
+
+                #Assign biomes to creature
+                for biomes in  list_biomes:
+                    list_clean_biomes.append(biomes[0])
+                creature.set_biomes(list_biomes)
                 
                 #Print Results
-                result = f"Name: {creature.get_name()}\nBiomes: {creature.get_biomes()}\nDanger-level: {creature.get_danger_level()}\nDepth-Level: {creature.get_depth_level()}\nPDA Entry: {creature.get_pda_entry()}\n"
+                result = f"Name: {creature.get_name()}\nBiomes: {creature.get_biomes()}\nDepth-Level: {creature.get_min_depth()}-{creature.get_max_depth()}m \nPDA Entry: {creature.get_pda_entry()}\n"
                 print(result)
                 print("------------------------------------------------------------")
                 time.sleep(2)

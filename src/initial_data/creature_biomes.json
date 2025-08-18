@@ -1,38 +1,167 @@
 [
-  {"creature_name": "Peeper", "biomes": ["Safe Shallows", "Kelp Forest", "Grassy Plateaus", "Mushroom Forest", "Sparse Reef"]},
-  {"creature_name": "Garryfish", "biomes": ["Safe Shallows"]},
-  {"creature_name": "Bladderfish", "biomes": ["Safe Shallows", "Kelp Forest"]},
-  {"creature_name": "Spinefish", "biomes": ["Grassy Plateaus", "Safe Shallows"]},
-  {"creature_name": "Holefish", "biomes": ["Safe Shallows"]},
-  {"creature_name": "Boomerang", "biomes": ["Safe Shallows", "Kelp Forest"]},
-  {"creature_name": "Eyeye", "biomes": ["Kelp Forest", "Safe Shallows", "Grassy Plateaus"]},
-  {"creature_name": "Hoverfish", "biomes": ["Safe Shallows", "Grassy Plateaus"]},
-  {"creature_name": "Gasopod", "biomes": ["Safe Shallows", "Grassy Plateaus", "Mushroom Forest"]},
-  {"creature_name": "Reefback Leviathan", "biomes": ["Safe Shallows", "Grassy Plateaus", "Grand Reef", "Sea Treader's Tunnel", "Bulb Zone"]},
-  {"creature_name": "Rabbit Ray", "biomes": ["Safe Shallows", "Grassy Plateaus"]},
-  {"creature_name": "Cuddlefish", "biomes": ["Lost River (Egg)", "Deep Grand Reef (Egg)", "Dunes (Egg)", "Mushroom Forest (Egg)"]},
-  {"creature_name": "Jellyray", "biomes": ["Grand Reef", "Bulb Zone"]},
-  {"creature_name": "Shuttlebug", "biomes": ["Blood Kelp Zone"]},
-  {"creature_name": "Skyray", "biomes": ["Floating Island", "Mountain Island (surface/shallow water)"]},
-  {"creature_name": "Floater (Small)", "biomes": ["Safe Shallows", "Kelp Forest", "Grassy Plateaus (attaches to objects/creatures)"]},
-  {"creature_name": "Floater (Large)", "biomes": ["Floating Island"]},
-  {"creature_name": "Sea Treader Leviathan", "biomes": ["Sea Treader's Path"]},
-  {"creature_name": "Biter", "biomes": ["Kelp Forest", "Safe Shallows (rare)", "Blood Kelp Zone", "Grassy Plateaus"]},
-  {"creature_name": "Bleeder", "biomes": ["Aurora", "Blood Kelp Zone", "Sparse Reef", "Sea Treader's Path"]},
-  {"creature_name": "Stalker", "biomes": ["Kelp Forest", "Grassy Plateaus"]},
-  {"creature_name": "Crabsnake", "biomes": ["Jellyshroom Cave"]},
-  {"creature_name": "Bone Shark", "biomes": ["Grand Reef", "Bulb Zone", "Blood Kelp Zone", "Mountains"]},
-  {"creature_name": "Crashfish", "biomes": ["Safe Shallows", "Kelp Forest", "Grassy Plateaus (found in Sulfur Plants)"]},
-  {"creature_name": "Cave Crawler", "biomes": ["Safe Shallows (Caves)", "Kelp Forest (Caves)", "Grassy Plateaus (Caves)", "Aurora"]},
-  {"creature_name": "Ampeel", "biomes": ["Blood Kelp Zone", "Grand Reef"]},
-  {"creature_name": "Crab Squid", "biomes": ["Grand Reef", "Blood Kelp Zone (South)"]},
-  {"creature_name": "Lava Larva", "biomes": ["Inactive Lava Zone", "Active Lava Zone", "Lost River"]},
-  {"creature_name": "Lava Lizard", "biomes": ["Inactive Lava Zone", "Active Lava Zone", "Lava Castle"]},
-  {"creature_name": "Mesmer", "biomes": ["Blood Kelp Zone", "Grand Reef", "Sea Treader's Path"]},
-  {"creature_name": "River Prowler", "biomes": ["Lost River"]},
-  {"creature_name": "Warper", "biomes": ["Lost River", "Inactive Lava Zone", "Blood Kelp Zone", "Alien Bases"]},
-  {"creature_name": "Reaper Leviathan", "biomes": ["Crash Zone", "Mountains", "Dunes"]},
-  {"creature_name": "Sea Dragon Leviathan", "biomes": ["Inactive Lava Zone", "Active Lava Zone"]},
-  {"creature_name": "Ghost Leviathan", "biomes": ["Lost River", "Grand Reef (Juvenile)", "Void (Adult)"]}
+  {
+    "creature_name": "Peeper",
+    "biomes": [
+      "Bulb Zone",
+      "Crash Zone",
+      "Crash Zone Mesas",
+      "Dunes",
+      "Deep Sparse Reef",
+      "Grand Reef",
+      "Kelp Forest",
+      "Safe Shallows",
+      "Sparse Reef",
+      "Mountains",
+      "Northeastern Mushroom Forest",
+      "Northeastern Mushroom Forest Caves",
+      "Underwater Islands"
+    ]
+  },
+  {
+    "creature_name": "Garryfish",
+    "biomes": ["Safe Shallows"]
+  },
+  {
+    "creature_name": "Bladderfish",
+    "biomes": ["Safe Shallows", "Kelp Forest"]
+  },
+  {
+    "creature_name": "Spinefish",
+    "biomes": ["Safe Shallows", "Grassy Plateaus"]
+  },
+  {
+    "creature_name": "Holefish",
+    "biomes": ["Safe Shallows"]
+  },
+  {
+    "creature_name": "Boomerang",
+    "biomes": ["Safe Shallows", "Kelp Forest"]
+  },
+  {
+    "creature_name": "Eyeye",
+    "biomes": ["Safe Shallows", "Kelp Forest", "Grassy Plateaus"]
+  },
+  {
+    "creature_name": "Hoverfish",
+    "biomes": ["Safe Shallows", "Grassy Plateaus"]
+  },
+  {
+    "creature_name": "Gasopod",
+    "biomes": ["Safe Shallows", "Grassy Plateaus", "Mushroom Forest"]
+  },
+  {
+    "creature_name": "Reefback Leviathan",
+    "biomes": ["Safe Shallows", "Grassy Plateaus", "Grand Reef", "Sea Treader's Path", "Bulb Zone"]
+  },
+  {
+    "creature_name": "Rabbit Ray",
+    "biomes": ["Safe Shallows", "Grassy Plateaus"]
+  },
+  {
+    "creature_name": "Cuddlefish",
+    "biomes": ["Lost River", "Grand Reef", "Dunes", "Mushroom Forest"]
+  },
+  {
+    "creature_name": "Jellyray",
+    "biomes": ["Grand Reef", "Bulb Zone"]
+  },
+  {
+    "creature_name": "Shuttlebug",
+    "biomes": ["Blood Kelp Zone"]
+  },
+  {
+    "creature_name": "Skyray",
+    "biomes": ["Floating Island", "Mountain Island"]
+  },
+  {
+    "creature_name": "Floater (Small)",
+    "biomes": ["Safe Shallows", "Kelp Forest", "Grassy Plateaus"]
+  },
+  {
+    "creature_name": "Floater (Large)",
+    "biomes": ["Floating Island"]
+  },
+  {
+    "creature_name": "Sea Treader Leviathan",
+    "biomes": ["Sea Treader's Path"]
+  },
+  {
+    "creature_name": "Biter",
+    "biomes": [
+      "Crash Zone Mesas",
+      "Grassy Plateaus",
+      "Jellyshroom Cave",
+      "Mountains",
+      "Mountains Caves"
+    ]
+  },
+  {
+    "creature_name": "Bleeder",
+    "biomes": [
+      "Aurora",  
+      "Blood Kelp Zone",
+      "Sparse Reef",
+      "Sea Treader's Path"
+    ]
+  },
+  {
+    "creature_name": "Stalker",
+    "biomes": ["Kelp Forest", "Grassy Plateaus"]
+  },
+  {
+    "creature_name": "Crabsnake",
+    "biomes": ["Jellyshroom Cave"]
+  },
+  {
+    "creature_name": "Bone Shark",
+    "biomes": ["Grand Reef", "Bulb Zone", "Blood Kelp Zone", "Mountains", "Crag Field", "Underwater Islands"]
+  },
+  {
+    "creature_name": "Crashfish",
+    "biomes": ["Safe Shallows Caves", "Kelp Forest Caves"]
+  },
+  {
+    "creature_name": "Cave Crawler",
+    "biomes": ["Safe Shallows Caves", "Kelp Forest Caves", "Grassy Plateaus Caves", "Aurora"]
+  },
+  {
+    "creature_name": "Ampeel",
+    "biomes": ["Blood Kelp Caves", "Blood Kelp Zone", "Bulb Zone"]
+  },
+  {
+    "creature_name": "Crab Squid",
+    "biomes": ["Deep Grand Reef", "Northern Blood Kelp Caves", "Northern Blood Kelp Zone", "Lost River"]
+  },
+  {
+    "creature_name": "Lava Larva",
+    "biomes": ["Inactive Lava Zone Corridor", "Inactive Lava Zone", "Lost River"]
+  },
+  {
+    "creature_name": "Lava Lizard",
+    "biomes": ["Inactive Lava Zone Corridor", "Inactive Lava Zone", "Lava Lakes", "Lava Castle"]
+  },
+  {
+    "creature_name": "Mesmer",
+    "biomes": ["Bulb Zone", "Crag Field", "Kelp Forest Caves", "Lost River Bones Field", "Northeastern Mushroom Forest"]
+  },
+  {
+    "creature_name": "River Prowler",
+    "biomes": ["Lost River"]
+  },
+  {
+    "creature_name": "Warper",
+    "biomes": ["Lost River", "Inactive Lava Zone", "Blood Kelp Zone", "Alien Bases"]
+  },
+  {
+    "creature_name": "Reaper Leviathan",
+    "biomes": ["Crash Zone", "Mountains", "Dunes"]
+  },
+  {
+    "creature_name": "Sea Dragon Leviathan",
+    "biomes": ["Inactive Lava Zone", "Lava Lakes"]
+  },
+  {
+    "creature_name": "Ghost Leviathan",
+    "biomes": ["Lost River", "Grand Reef", "Crater Edge"]
+  }
 ]
-
