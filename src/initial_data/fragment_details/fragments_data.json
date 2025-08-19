@@ -1,0 +1,278 @@
+{
+  "Vehicles & Vehicle Upgrades": [
+    {
+      "name": "Mobile Vehicle Bay",
+      "totalNeeded": 3,
+      "minDepth": 10,
+      "maxDepth": 150
+    },
+    {
+      "name": "Seamoth Hull",
+      "totalNeeded": 3,
+      "minDepth": 10,
+      "maxDepth": 175
+    },
+    {
+      "name": "Seamoth Pressure Compensator",
+      "totalNeeded": 1,
+      "minDepth": 30,
+      "maxDepth": 500
+    },
+    {
+      "name": "Seamoth Storage Module",
+      "totalNeeded": 1,
+      "minDepth": 150,
+      "maxDepth": 450
+    },
+    {
+      "name": "Seamoth Torpedo System",
+      "totalNeeded": 1,
+      "minDepth": 175,
+      "maxDepth": 450
+    },
+    {
+      "name": "Seamoth Solar Charge",
+      "totalNeeded": 1,
+      "minDepth": 150,
+      "maxDepth": 500
+    },
+    {
+      "name": "Seamoth Perimeter Defense System",
+      "totalNeeded": 1,
+      "minDepth": 150,
+      "maxDepth": 450
+    },
+    {
+      "name": "PRAWN Suit Hull",
+      "totalNeeded": 4,
+      "minDepth": 150,
+      "maxDepth": 500
+    },
+    {
+      "name": "PRAWN Suit Drill Arm",
+      "totalNeeded": 2,
+      "minDepth": 175,
+      "maxDepth": 500
+    },
+    {
+      "name": "PRAWN Suit Torpedo Arm",
+      "totalNeeded": 2,
+      "minDepth": 175,
+      "maxDepth": 500
+    },
+    {
+      "name": "PRAWN Suit Propulsion Cannon Arm",
+      "totalNeeded": 2,
+      "minDepth": 150,
+      "maxDepth": 400
+    },
+    {
+      "name": "PRAWN Suit Grappling Arm",
+      "totalNeeded": 2,
+      "minDepth": 175,
+      "maxDepth": 500
+    },
+    {
+      "name": "PRAWN Suit Jump Jet Upgrade",
+      "totalNeeded": 1,
+      "minDepth": 175,
+      "maxDepth": 450
+    },
+    {
+      "name": "PRAWN Suit Thermal Reactor",
+      "totalNeeded": 1,
+      "minDepth": 800,
+      "maxDepth": 1400
+    },
+    {
+      "name": "PRAWN Suit Pressure Compensator",
+      "totalNeeded": 1,
+      "minDepth": 150,
+      "maxDepth": 500
+    },
+    {
+      "name": "Cyclops Engine",
+      "totalNeeded": 3,
+      "minDepth": 175,
+      "maxDepth": 500
+    },
+    {
+      "name": "Cyclops Hull",
+      "totalNeeded": 3,
+      "minDepth": 175,
+      "maxDepth": 500
+    },
+    {
+      "name": "Cyclops Bridge",
+      "totalNeeded": 3,
+      "minDepth": 100,
+      "maxDepth": 250
+    },
+    {
+      "name": "Cyclops Decoy Tube",
+      "totalNeeded": 1,
+      "minDepth": 250,
+      "maxDepth": 500
+    },
+    {
+      "name": "Cyclops Sonar Upgrade",
+      "totalNeeded": 1,
+      "minDepth": 350,
+      "maxDepth": 500
+    },
+    {
+      "name": "Cyclops Thermal Reactor",
+      "totalNeeded": 1,
+      "minDepth": 800,
+      "maxDepth": 1400
+    },
+    {
+      "name": "Cyclops Shield Generator",
+      "totalNeeded": 1,
+      "minDepth": 300,
+      "maxDepth": 500
+    }
+  ],
+  "Base Modules & Upgrades": [
+    {
+      "name": "Multipurpose Room",
+      "totalNeeded": 1,
+      "minDepth": 50,
+      "maxDepth": 400
+    },
+    {
+      "name": "Bioreactor",
+      "totalNeeded": 2,
+      "minDepth": 150,
+      "maxDepth": 450
+    },
+    {
+      "name": "Nuclear Reactor",
+      "totalNeeded": 2,
+      "minDepth": 150,
+      "maxDepth": 450
+    },
+    {
+      "name": "Thermal Plant",
+      "totalNeeded": 2,
+      "minDepth": 175,
+      "maxDepth": 500
+    },
+    {
+      "name": "Alien Containment",
+      "totalNeeded": 2,
+      "minDepth": 200,
+      "maxDepth": 500
+    },
+    {
+      "name": "Water Filtration Machine",
+      "totalNeeded": 2,
+      "minDepth": 175,
+      "maxDepth": 400
+    },
+    {
+      "name": "Scanner Room",
+      "totalNeeded": 2,
+      "minDepth": 100,
+      "maxDepth": 300
+    },
+    {
+      "name": "Moonpool",
+      "totalNeeded": 2,
+      "minDepth": 150,
+      "maxDepth": 450
+    },
+    {
+      "name": "Modification Station",
+      "totalNeeded": 2,
+      "minDepth": 100,
+      "maxDepth": 300
+    },
+    {
+      "name": "Vehicle Upgrade Console",
+      "totalNeeded": 1,
+      "minDepth": 150,
+      "maxDepth": 450
+    },
+    {
+      "name": "Battery Charger",
+      "totalNeeded": 2,
+      "minDepth": 100,
+      "maxDepth": 350
+    },
+    {
+      "name": "Power Cell Charger",
+      "totalNeeded": 2,
+      "minDepth": 150,
+      "maxDepth": 400
+    }
+  ],
+  "Tools & Equipment": [
+    {
+      "name": "Seaglide",
+      "totalNeeded": 2,
+      "minDepth": 20,
+      "maxDepth": 150
+    },
+    {
+      "name": "Laser Cutter",
+      "totalNeeded": 2,
+      "minDepth": 30,
+      "maxDepth": 100
+    },
+    {
+      "name": "Stasis Rifle",
+      "totalNeeded": 2,
+      "minDepth": 50,
+      "maxDepth": 250
+    },
+    {
+      "name": "Propulsion Cannon",
+      "totalNeeded": 2,
+      "minDepth": 20,
+      "maxDepth": 100
+    },
+    {
+      "name": "Repulsion Cannon",
+      "totalNeeded": 2,
+      "minDepth": 175,
+      "maxDepth": 450
+    },
+    {
+      "name": "Grav Trap",
+      "totalNeeded": 2,
+      "minDepth": 0,
+      "maxDepth": 100
+    },
+    {
+      "name": "Radiation Suit",
+      "totalNeeded": 2,
+      "minDepth": 0,
+      "maxDepth": 100
+    },
+    {
+      "name": "Reinforced Dive Suit",
+      "totalNeeded": 2,
+      "minDepth": 150,
+      "maxDepth": 400
+    },
+    {
+      "name": "Rebreather",
+      "totalNeeded": 1,
+      "minDepth": 150,
+      "maxDepth": 400
+    },
+    {
+      "name": "Ultra Glide Fins",
+      "totalNeeded": 1,
+      "minDepth": 200,
+      "maxDepth": 400
+    },
+    {
+      "name": "Swim Charge Fins",
+      "totalNeeded": 1,
+      "minDepth": 100,
+      "maxDepth": 300
+    }
+  ]
+}
