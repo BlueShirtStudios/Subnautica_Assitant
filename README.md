@@ -7,4 +7,4 @@ Name, biome, category, danger level, depth level and a view more. This will assi
 
 An AI assistant is present, it will provide you with detailed answer. Answering any question you could answer of the game -- stil in development
 
-I will further update the Readme file as development progresses.
+I will further update the Readme file as development progresses. Note that the app will go through a redesign that it will only use an AI system, almost all the sourcecode will be changed
