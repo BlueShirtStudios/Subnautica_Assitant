@@ -1,4 +1,4 @@
-from creature_manger import CreatureManager
+from creature_manager import CreatureManager
 from fragment_manager import Fragment_Manager
 from ai_assitant import AI_Assitant
 from menu import MainMenu, Encyclopedia, FragmentLookUp
@@ -62,7 +62,10 @@ while continue_program == True:
             
             #Create Creature Manager and Encyclopedia object instance
             creature_manager = CreatureManager(DB_NAME)
-            creature_manager.check_creaturesDB()
+            if creature_manager.check_db_creature_details() == False:
+                print("Check is unsuccessfull, table creation or table population was problematic")
+                main_menu.exit_program()
+                
             encyclopedia_menu = Encyclopedia()
             
             while continue_encyclopedia == True:
