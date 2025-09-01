@@ -2,7 +2,7 @@
 __pycache__/
 env/
 venv/
-object_approach/__pycache__
+knowledge_base/__pycache__
 
 #Project Specifics 
 .env
@@ -10,6 +10,5 @@ object_approach/__pycache__
 #IDE Specifics
 .vscode
 
-#Test files
-test/
-old_code.txt
+#Data file
+subnautica_wiki.jsonl
