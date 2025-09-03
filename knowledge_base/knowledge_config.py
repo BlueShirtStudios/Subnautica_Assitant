@@ -1,14 +1,13 @@
 CONFIGS = [
     { 
         "api": "https://subnautica.fandom.com/api.php",
-        "output_path": "subnautica_wiki.jsonl",
+        "output_path": "subnautica_wiki.jsonl", #"subnautica_wiki.jsonl"
         "params": {
                 "action": "query",
                 "format": "json",
                 "prop": "info|extracts|pageimages|categories",
                 "inprop": "url",
                 "generator": "allpages",
-                "exintro": True,       # only intro text
                 "explaintext": True,   # no HTML, plain text
                 "piprop": "thumbnail",
                 "clshow": "!hidden",   # only visible categories
