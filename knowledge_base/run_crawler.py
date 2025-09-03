@@ -1,4 +1,4 @@
-from knowledge_base.knowledge_config import CONFIGS
+from knowledge_config import CONFIGS
 from build_knowledge_base import Crawler
 
 for cfg in CONFIGS:

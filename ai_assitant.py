@@ -1,46 +1,18 @@
 import os
 import time
+import os
 import json
 import google.generativeai as genai
+import bot_tools
 
-class AI_Assitant():
+class AI_Agent():
     def __init__(self, api : str, prompt : str):
         self.api = api
         self.model = None
+        self.chat_session = None
         self.prompt = prompt
-        self.chat_history_list = []
-        self.continue_convo = False
-        
-    def get_api(self):
-        return self.api
+        self.search_tools = None
     
-    def set_api(self, api : str):
-        self.api = api
-        
-    def get_prompt(self):
-        return self.prompt
-    
-    def set_prompt(self, prompt : str):
-        self.prompt = prompt
-        
-    def get_chat_history(self):
-        return self.chat_history_list
-    
-    def add_to_chat_history(self, role : str, content : str):
-        self.chat_history_list.append(role, content)
-        
-    def get_continue_convo(self):
-        return self.continue_convo
-    
-    def set_continue_convo(self, repsonse : bool):
-        self.continue_convo = repsonse
-        
-    def get_model(self):
-        return self.model
-    
-    def set_model(self, model : str):
-        self.model = model
-        
     def _get_available_model(self):
         available_model_name = None
         print("------------Model loading begun-------------")
@@ -82,26 +54,83 @@ class AI_Assitant():
                     print(f"- {m.name}")
             exit()
         
-    def _intitalize_bot(self):
-        genai.configure(api_key=self.get_api())
-        
-        self.set_model(genai.GenerativeModel(self._get_available_model(), system_instruction=self.get_prompt()))
-        chat = self.get_model().start_chat(history=self.get_chat_history())
-        return chat
+    def _intitalize_agent(self):
+        genai.configure(api_key=self.api)
+        self.model = genai.GenerativeModel(self._get_available_model(), system_instruction=self.prompt)
+        self.chat_session = self.model.start_chat(history=[])
     
-    def _get_response(self, chat : str, question : str):
-        repsonse = chat.send_message(question).text
-        return repsonse
+    def _handle_message(self, chat_session: genai.ChatSession, question : str):
+        tool_call_prompt = f"""
+        You are a tool-calling agent. Your job is to decide if a user's question requires a search
         
+        User's question: "{question}"
+        
+        If the question requires searching the knowledge base, respond with a JSON object.
+        Example of your response: {{"tool_name": "search_by_keyword", "query": "KEYWORDS"}}.
+        
+        If the question can be answered without the search respond with "NO_TOOL_NEEDED".
+        
+        Your response must ONLY be the JSON string of "NO_TOOL_NEEDED".
+        Do not add any other text.
+        """
+        
+        llm_repsonse_text = self.chat_session.send_message(tool_call_prompt).text.strip()
+        
+        #Check is tools need to be used
+        if llm_repsonse_text.upper() == "NO_TOOL_NEEDED":
+            #No tool needed
+            direct_response = self.chat_session.send_message(question).text
+            return direct_response
+        
+        else:
+            try:
+                #Tools are needed
+                start_index = llm_repsonse_text.find('{')
+                end_index = llm_repsonse_text.rfind('}') + 1
+                
+                if start_index != -1 and end_index != -1:
+                    json_string = llm_repsonse_text[start_index:end_index]
+                    tool_call = json.loads(json_string)
+                    
+                    if tool_call.get("tool_name") == "search_by_keyword" and "query" in tool_call:
+                        query = tool_call.get("query")
+                        
+                        search_results = self.search_tools.search_by_keyword(query)
+                
+                        search_result_prompt = f"""
+                                You are a helpful assistant for the game Subnautica.
+                                You have received the following information to answer the user's question.
+                                        
+                                User's original question: {question}
+                                        
+                                Search results:
+                                {json.dumps(search_results, indent=2)}
+                                        
+                                Based on this information, provide a detailed and helpful answer.
+                                
+                                """
+                        final_response = chat_session.send_message(search_result_prompt).text
+                        return final_response
+                    
+                    else:
+                        return "Error: Invalid tool call format from LLM."
+                    
+                else:
+                    return "Error: LLM could not retrieve a valid JSON object."
+                
+            except json.JSONDecodeError:
+                return "Error: Could not parse LLM's tool call response."
+         
     def start_conversation(self):
-        chat = self._intitalize_bot()
-        self.set_continue_convo(True)
-        print("Hello I am ALT.")
-        while self.get_continue_convo:
-            user_question = input("What is your question?")
-            print(self._get_response(chat, user_question))
+        self._intitalize_agent()
+        self.search_tools = bot_tools.Tools("subnautica_wiki.jsonl")
+        continue_convo = True
+        while continue_convo == True:
+            question = input("What is your question? ")
+            response = self._handle_message(self.chat_session ,question)
+            print(response)
             
-class Commands(AI_Assitant):
+class Command_Handler():
     def __init__(self):
         self.commands_dict ={
             "exit": {
