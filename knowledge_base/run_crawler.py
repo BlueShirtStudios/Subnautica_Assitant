@@ -7,5 +7,4 @@ for cfg in CONFIGS:
         output_path=cfg["output_path"],
         params=cfg["params"]
     )
-    crawler.make_presence_known()
     crawler.crawl_over_all()
