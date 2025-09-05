@@ -12,3 +12,7 @@ knowledge_base/__pycache__
 
 #Data file created in code
 subnautica_wiki.jsonl
+chat_history.json
+
+#Log files
+knowledge_base/crawler.log
