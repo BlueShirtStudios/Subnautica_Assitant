@@ -11,7 +11,9 @@ class AI_Agent():
         self.model = None
         self.chat_session = None
         self.prompt = prompt
+        self.chat_history = []
         self.search_tools = None
+        self.commands = Command_Handler(self)
     
     def _get_available_model(self):
         available_model_name = None
@@ -57,8 +59,15 @@ class AI_Agent():
     def _intitalize_agent(self):
         genai.configure(api_key=self.api)
         self.model = genai.GenerativeModel(self._get_available_model(), system_instruction=self.prompt)
+        
+        self.commands.handle_load("chat_history.json")
         self.chat_session = self.model.start_chat(history=[])
-    
+        
+    def restart_session(self):
+        self.chat_session = self.model.start_chat(history=[])
+        self.chat_history = []
+        print("Chat has been restarted.")
+        
     def _handle_message(self, chat_session: genai.ChatSession, question : str):
         tool_call_prompt = f"""
         You are a tool-calling agent. Your job is to decide if a user's question requires a search
@@ -125,13 +134,34 @@ class AI_Agent():
         self._intitalize_agent()
         self.search_tools = bot_tools.Tools("subnautica_wiki.jsonl")
         continue_convo = True
-        while continue_convo == True:
-            question = input("What is your question? ")
-            response = self._handle_message(self.chat_session ,question)
-            print(response)
+        print("Hello, how can I be of assitance today? If you wish to end our session, Please Type 'exit'. If you want to use system commands, type /help.")
+        while continue_convo == True:    
+            user_input = input("What is your question? ")
+            if user_input.lower() == "exit":
+                self.commands.handle_save("chat_history.json")
+                self.commands.handle_exit()
+                
+            if user_input.startswith('/'):
+                clean_command = user_input[1:]
+                self.commands.handle_command(clean_command)
+                
+            else:
+                self.chat_history.append(f"User: {user_input}")
+                response = self._handle_message(self.chat_session, user_input)
+                self.chat_history.append(f"Agent: {response}")
+                print(response)
             
 class Command_Handler():
-    def __init__(self):
+    def __init__(self, agent_instance):
+        self.agent = agent_instance
+        self.exit = self.handle_exit
+        self.help = self.handle_help
+        self.new = self.handle_new
+        self.load = self.handle_load
+        self.save = self.handle_save
+        self.clear = self.handle_clear
+        self.history = self.handle_history
+        self.info = self.handle_info
         self.commands_dict ={
             "exit": {
                 "method": self.exit,
@@ -139,26 +169,121 @@ class Command_Handler():
             },
             "help": {
                 "method": self.help,
-                "description": "Exits the program"
+                "description": "Display all commands"
             },
             "new": {
                 "method": self.new,
                 "description": "Starts new Chat"
-            }   
+            },
+            "load":{
+                "method": self.load,
+                "description": "Load previous Chat from File [args : File Path ; str]"
+            },
+            "save":{
+                "method": self.save,
+                "description": "Save Chat to File [args : File Path : str]"
+            },
+            "clear":{
+                "method": self.clear,
+                "description": "Clean Console Output"
+            },
+            "history":{
+                "method": self.history,
+                "description": "Brings history of Chat"
+            },
+            "info":{
+                "method": self.info,
+                "description": "Gives Info on Agent"
+            }
         }
-    def handle_command(self, command):
-        command = command.strip().lower()
+        
+    def handle_command(self, command_input):
+        parts = command_input.strip().lower().split()
+        command = parts[0]
+        args = parts[1:]
+        
         if command in self.commands_dict:
-            self.commands_dict["method"[command]]()
+            method_call = self.commands_dict[command]["method"]
+            method_call(args)
             return True
         else:
             return False
         
-    def handle_exit(self):
+    def handle_exit(self, args=None):
         print("Closing ALT. Safe travels survivior...")
+        exit()
         
-    def handle_help(self):
+    def handle_help(self, args=None):
         print("Loading command dictionary...")
-        for cmd, info in self.commands_dict:
+        for cmd, info in self.commands_dict.items():
             print(f"- {cmd} : {info["description"]}")
             
+    def handle_new(self, args=None):
+        self.agent.restart_session()
+        self.agent.chat_history.append("New Session Started.")
+        self.handle_clear()
+            
+    def handle_clear(self, args=None):
+        if os.name == 'nt':
+            os.system('cls')
+        else:
+            os.system('clear')
+            
+    def handle_load(self, args):
+        if not args:
+            print("Please provide path to file or filename")
+            return
+        
+        if not isinstance(args, list):
+            file_path = args
+        
+        if not os.path.exists(file_path):
+            print("File not found.")
+            return
+        try:
+            with open(file_path, "r", encoding="utf-8") as file:
+                loaded_history = json.load(file)
+                if isinstance(loaded_history, list):
+                    self.agent.chat_history = loaded_history
+                else:
+                    print("There was an issue: Loaded History is not list")
+        except json.JSONDecodeError:
+            print("Error: Failed to decode JSON.")
+            
+        except Exception as e:
+            print(f"An error has occured during loading: {e}")
+                    
+    def handle_save(self, args):
+        if not args:
+            print("Please provide path to file or filename")
+            return
+        
+        if not isinstance(args, list):
+            file_path = args
+        
+        if not os.path.exists(file_path):
+            print("File not found.")
+            return
+        else:
+            try:
+                with open(file_path, "w", encoding="utf-8") as file:
+                    json.dumps(self.agent.chat_history, file, indent=4)
+                    print("Chat history saved.")
+                    
+            except Exception as e:
+                print(f"An error has occured: {e}")
+                
+    def handle_history(self, args=None):
+        for lines in self.agent.chat_history:
+            print(lines)
+            
+    def handle_info(self, args=None):
+        if self.agent.model:
+            model_version = self.agent.model.name
+        else:
+            model_version = "Version not Intialized."
+            
+        print("Name for Project: ALT")
+        print("LLM Model: Gemini")
+        print(f"Model Version: {model_version}")
+        print("Description: Assistant for User")
