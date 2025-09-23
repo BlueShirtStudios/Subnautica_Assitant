@@ -7,4 +7,4 @@ for cfg in CONFIGS:
         output_path=cfg["output_path"],
         params=cfg["params"]
     )
-    crawler.crawl_over_all()
+    crawler.crawl()

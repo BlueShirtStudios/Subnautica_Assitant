@@ -17,9 +17,6 @@ class AI_Agent():
     
     def _get_available_model(self):
         available_model_name = None
-        print("------------Model loading begun-------------")
-        print("Attempting to list available models and select a suitable one...")
-
         preferred_prefixes = ['models/gemini-1.5-flash', 'models/gemini-1.5-pro', 'models/gemini-pro']
     
         #Store models that meet criteria to pick the best later
@@ -36,31 +33,34 @@ class AI_Agent():
             for m in found_suitable_models:
                 if m.name.startswith(prefix):
                     available_model_name = m.name
-                    print(f"Prioritizing and using model: {available_model_name}")
                     break 
             if available_model_name:
                 break
 
         if available_model_name:
-            print(f"Final selected model: {available_model_name}")
-            #Everthing is fine if it came to this point
-            print("------------Model loading complete-------------")
-        
             return available_model_name
+        
         else:
-            print("Error: No suitable model found that supports 'generateContent' in your environment.")
-            print("Please ensure you have access to Gemini 1.5 models (e.g., gemini-1.5-flash-00X) or gemini-pro.")
-            print("Here are all models available to your API key that support generateContent:")
             for m in genai.list_models():
                 if 'generateContent' in m.supported_generation_methods:
                     print(f"- {m.name}")
             exit()
         
-    def _intitalize_agent(self):
+    def intitalize_agent(self):
         genai.configure(api_key=self.api)
         self.model = genai.GenerativeModel(self._get_available_model(), system_instruction=self.prompt)
         
-        self.commands.handle_load("chat_history.json")
+        data_path = os.path.join(os.path.dirname(__file__), "data", "subnautica_wiki.jsonl")
+        if os.path.exists(data_path):
+            self.search_tools = bot_tools.Tools(data_path)
+            
+        else:
+            print("Error 001")
+        
+        if os.path.exists("chat_history.json"):
+            if os.stat("chat_history.json").st_size > 0:
+                self.commands.handle_load("chat_history.json")
+            
         self.chat_session = self.model.start_chat(history=[])
         
     def restart_session(self):
@@ -129,27 +129,6 @@ class AI_Agent():
                 
             except json.JSONDecodeError:
                 return "Error: Could not parse LLM's tool call response."
-         
-    def start_conversation(self):
-        self._intitalize_agent()
-        self.search_tools = bot_tools.Tools("subnautica_wiki.jsonl")
-        continue_convo = True
-        print("Hello, how can I be of assitance today? If you wish to end our session, Please Type 'exit'. If you want to use system commands, type /help.")
-        while continue_convo == True:    
-            user_input = input("What is your question? ")
-            if user_input.lower() == "exit":
-                self.commands.handle_save("chat_history.json")
-                self.commands.handle_exit()
-                
-            if user_input.startswith('/'):
-                clean_command = user_input[1:]
-                self.commands.handle_command(clean_command)
-                
-            else:
-                self.chat_history.append(f"User: {user_input}")
-                response = self._handle_message(self.chat_session, user_input)
-                self.chat_history.append(f"Agent: {response}")
-                print(response)
             
 class Command_Handler():
     def __init__(self, agent_instance):
@@ -278,12 +257,6 @@ class Command_Handler():
             print(lines)
             
     def handle_info(self, args=None):
-        if self.agent.model:
-            model_version = self.agent.model.name
-        else:
-            model_version = "Version not Intialized."
-            
-        print("Name for Project: ALT")
+        print("Name: ALT")
         print("LLM Model: Gemini")
-        print(f"Model Version: {model_version}")
         print("Description: Assistant for User")

@@ -92,7 +92,7 @@ class Crawler:
                         "pageid": page_id,
                         "title": page.get("title"),
                         "fullurl": page.get("fullurl"),
-                        "extract": page.get("extract"),
+                        "extract": page.get("extract") or self.get_missing_extract(page.get("title")),
                         "thumbnail": (page.get("thumbnail") or {}).get("source"),
                         "categories": [c["title"] for c in page.get("categories", []) if not c.get("hidden")],
                         "sections": section_data
@@ -115,3 +115,23 @@ class Crawler:
                     break
                     
         print(f"Finished Crawling. Wrote {self.pages_written} pages to {self.output_path}")
+        
+    def get_missing_extract(self, title : str):
+        extract_params = {
+            "action": "query",
+            "format": "json",
+            "titles": title,
+            "prop": "extracts",
+            "explaintext": True
+        }
+        try:
+            res = self.session.get(self.api, params=extract_params, timeout=30)
+            res.raise_for_status()
+            data = res.json()
+            pages = data.get("query", {}).get("pages", {})
+            for page_id, page in pages.items():
+                return page.get("extract", "")
+            
+        except requests.exceptions.RequestException as e:
+            print(f"Error with fetching extract for {title} : {e}")
+            return ""     
