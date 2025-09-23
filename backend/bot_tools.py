@@ -1,6 +1,7 @@
 import json
 import os
 from collections import defaultdict
+import requests
 
 class Tools:
     def __init__(self, file_path : str ):
@@ -13,17 +14,20 @@ class Tools:
         if not os.path.exists(self.file_path):
             print("File not found.")
             exit()
-        
-        with open(self.file_path, "r", encoding="utf8") as file:
-            for line in file:
-                #Add whole file to data
-                entry = json.loads(line)
-                self.data.append(entry)
+            
+        try:
+            with open(self.file_path, "r", encoding="utf8") as file:
+                for line in file:
+                    #Add whole file to data
+                    entry = json.loads(line)
+                    self.data.append(entry)
                 
-                #Build Index
-                title = entry.get("title", "").lower()
-                for word in title.split():
-                    self.index[word].append(entry)
+                    #Build Index
+                    title = entry.get("title", "").lower()
+                    for word in title.split():
+                        self.index[word].append(entry)
+        except json.JSONDecodeError as e:
+            return f"Error has occured: {e}"
         
 
     def search_by_keyword(self, line : str):
