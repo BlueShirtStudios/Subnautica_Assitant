@@ -3,20 +3,35 @@
 <head>
     <meta charset = "UTF-8">
     <title>ALT</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='index.js') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='index.css') }}">
 </head>
 <body>
-    <div class="center-chatbox">
-        <h1>Hello Survivor, with what can I assist?</h1>
-        <form id="chatForm">
-            <input type="text" id="user_question" name="user_question">
+    <div class="main-wrapper">
+        <div class="greetings">
+        
+        </div>
 
-            <button type="submit">Submit</button>
-        </form>
-        <script src="{{ url_for('static', filename='index.js') }}"></script>
+        <div class="pda-container">
+            <div class="chatbox-container">
+                <form id="chatForm">
+                    <div class="input-wrapper">
+                        <input type="text" class="chat-input" id="chat-input" name="chat-input" placeholder="Ask Anything...">
+                        <button class="send-btn">➡</button>
+
+                    </div>
+                </form>
+                <script src="{{ url_for('static', filename='index.js') }}"></script>
+                
+                <div class="response-container">
+                    <div id="response"></div>
+                </div>
+
+            </div>
+
+        </div>
+
     </div>
 
-    <div id="response"></div>
-
+    
 </body>          
 </html>

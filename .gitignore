@@ -11,8 +11,9 @@ knowledge_base/__pycache__
 .vscode
 
 #Data file created in code
-subnautica_wiki.jsonl
-chat_history.json
+data/
 
 #Log files
-knowledge_base/crawler.log
+data/logs/crawler.log
+
+refrence_material/

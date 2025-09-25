@@ -1,16 +1,25 @@
 document.getElementById("chatForm").addEventListener("submit", async (e) => {
     e.preventDefault();
 
-    const question = document.getElementById("user_question").value;
+    const chatInput = document.getElementById('chat-input');
+    const responseDiv = document.getElementById('response');
+    const chatboxContainer = document.querySelector('.chatbox-container');
+    const userMessage = chatInput.value.trim();
 
-    const res = await fetch("/chat", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({ question })
-    });
+    if (userMessage === ''){
+        return;
+    }
+    else{
+        const res = await fetch("/chat", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ userMessage })
+        });
+        const data = await res.json();
+    }
 
-    const data = await res.json();
-
-    document.getElementById("response").innerText =
-        data.response || `Error: ${data.error}`;
+    
+    document.getElementById("response").innerText = data.response || `Error: ${data.error}`;
+    responseDiv.style.display = 'block';
+    chatInput.value = '';
 });
