@@ -1,4 +1,4 @@
-#Python
+#Backend
 __pycache__/
 env/
 venv/
@@ -15,5 +15,3 @@ data/
 
 #Log files
 data/logs/crawler.log
-
-refrence_material/

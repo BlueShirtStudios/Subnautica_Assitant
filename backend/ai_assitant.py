@@ -1,19 +1,17 @@
 import os
-import time
-import os
 import json
 import google.generativeai as genai
 import bot_tools
 
 class AI_Agent():
-    def __init__(self, api : str, prompt : str):
+    def __init__(self, api : str, prompt : str, chat_history_file_path : str):
         self.api = api
         self.model = None
         self.chat_session = None
         self.prompt = prompt
         self.chat_history = []
-        self.search_tools = None
-        self.commands = Command_Handler(self)
+        self.chat_history_path = chat_history_file_path
+        self.assit_commands = Assit_Commands(self)
     
     def _get_available_model(self):
         available_model_name = None
@@ -55,20 +53,34 @@ class AI_Agent():
             self.search_tools = bot_tools.Tools(data_path)
             
         else:
-            print("Error 001")
+            return "Tools not found, Critical Error"
         
-        if os.path.exists("chat_history.json"):
+        if os.path.exists(self.chat_history_path):
             if os.stat("chat_history.json").st_size > 0:
-                self.commands.handle_load("chat_history.json")
+                self.assit_commands.handle_load_conversation(self.chat_history_path)
             
         self.chat_session = self.model.start_chat(history=[])
         
     def restart_session(self):
         self.chat_session = self.model.start_chat(history=[])
         self.chat_history = []
-        print("Chat has been restarted.")
+        self.assit_commands.deliver_Output("Chat has been restarted.")
         
     def _handle_message(self, chat_session: genai.ChatSession, question : str):
+        if self.is_tool_needed(question):
+            tool_call = self.call_desired_tool
+            final_response = self.use_tool_for_response(tool_call, question)
+            
+        else:
+            final_response = self.chat_session.send_message(question) 
+            
+        self.chat_history = {"question" : question, "agent" : final_response}
+            
+            
+        #return result to app
+        return final_response
+            
+    def is_tool_needed(self, question : str):
         tool_call_prompt = f"""
         You are a tool-calling agent. Your job is to decide if a user's question requires a search
         
@@ -85,178 +97,144 @@ class AI_Agent():
         
         llm_repsonse_text = self.chat_session.send_message(tool_call_prompt).text.strip()
         
-        #Check is tools need to be used
         if llm_repsonse_text.upper() == "NO_TOOL_NEEDED":
-            #No tool needed
-            direct_response = self.chat_session.send_message(question).text
-            return direct_response
+            return False
         
         else:
-            try:
-                #Tools are needed
-                start_index = llm_repsonse_text.find('{')
-                end_index = llm_repsonse_text.rfind('}') + 1
+            return True
+                     
+    def call_desired_tool(self, llm_response_text):
+        #Clean llm respnse to see what tool is called
+        try:
+            start_index = llm_response_text.find('{')
+            end_index = llm_response_text.rfind('}') + 1
                 
-                if start_index != -1 and end_index != -1:
-                    json_string = llm_repsonse_text[start_index:end_index]
-                    tool_call = json.loads(json_string)
-                    
-                    if tool_call.get("tool_name") == "search_by_keyword" and "query" in tool_call:
-                        query = tool_call.get("query")
-                        
-                        search_results = self.search_tools.search_by_keyword(query)
+            if start_index != -1 and end_index != -1:
+                json_string = llm_response_text[start_index:end_index]
+                tool_call = json.loads(json_string)
+                return tool_call
                 
-                        search_result_prompt = f"""
-                                You are a helpful assistant for the game Subnautica.
-                                You have received the following information to answer the user's question.
-                                        
-                                User's original question: {question}
-                                        
-                                Search results:
-                                {json.dumps(search_results, indent=2)}
-                                        
-                                Based on this information, provide a detailed and helpful answer.
-                                
-                                """
-                        final_response = chat_session.send_message(search_result_prompt).text
-                        return final_response
-                    
-                    else:
-                        return "Error: Invalid tool call format from LLM."
-                    
-                else:
-                    return "Error: LLM could not retrieve a valid JSON object."
+            else:
+                return "Error: Invalid tool call format from LLM."
                 
-            except json.JSONDecodeError:
+        except json.JSONDecodeError:
                 return "Error: Could not parse LLM's tool call response."
-            
-class Command_Handler():
+             
+    def use_tool_for_response(self, tool_call : str, question : str):       
+        if tool_call.get("tool_name") == "search_by_keyword" and "query" in tool_call:
+            query = tool_call.get("query")
+                        
+            search_results = self.search_tools.search_by_keyword(query)
+                
+            search_result_prompt = f"""
+            You are a helpful assistant for the game Subnautica.
+            You have received the following information to answer the user's question.
+                                        
+            User's original question: {question}
+                                        
+            Search results:
+            {json.dumps(search_results, indent=2)}
+                                        
+            Based on this information, provide a detailed and helpful answer.
+                                
+            """
+            final_response = self.chat_session.send_message(search_result_prompt).text
+            return final_response
+                        
+        else:
+            return "Error: LLM could not retrieve a valid JSON object."
+                                
+class Assit_Commands():
     def __init__(self, agent_instance):
         self.agent = agent_instance
         self.exit = self.handle_exit
         self.help = self.handle_help
-        self.new = self.handle_new
-        self.load = self.handle_load
-        self.save = self.handle_save
-        self.clear = self.handle_clear
-        self.history = self.handle_history
-        self.info = self.handle_info
-        self.commands_dict ={
-            "exit": {
-                "method": self.exit,
-                "description": "Exits the program"
-            },
-            "help": {
-                "method": self.help,
-                "description": "Display all commands"
-            },
-            "new": {
-                "method": self.new,
-                "description": "Starts new Chat"
-            },
-            "load":{
-                "method": self.load,
-                "description": "Load previous Chat from File [args : File Path ; str]"
-            },
-            "save":{
-                "method": self.save,
-                "description": "Save Chat to File [args : File Path : str]"
-            },
-            "clear":{
-                "method": self.clear,
-                "description": "Clean Console Output"
-            },
-            "history":{
-                "method": self.history,
-                "description": "Brings history of Chat"
-            },
-            "info":{
-                "method": self.info,
-                "description": "Gives Info on Agent"
-            }
-        }
-        
-    def handle_command(self, command_input):
-        parts = command_input.strip().lower().split()
-        command = parts[0]
-        args = parts[1:]
-        
-        if command in self.commands_dict:
-            method_call = self.commands_dict[command]["method"]
-            method_call(args)
-            return True
-        else:
-            return False
+        self.new_converstaion = self.handle_new_converstaion
+        self.load_conversation = self.handle_load_converstaion
+        self.save_conversation = self.handle_save_converstaion
+        self.clear_terminal = self.handle_clear_terminal
+        self.conversation_history = self.converstaion_handle_history
+        self.agent_info = self.handle_info
+        self.deliver_Output = self.deliver_Output
         
     def handle_exit(self, args=None):
-        print("Closing ALT. Safe travels survivior...")
+        self.deliver_Output("Closing ALT. Safe travels survivior...")
         exit()
         
     def handle_help(self, args=None):
-        print("Loading command dictionary...")
+        self.deliver_Output("Loading command dictionary...")
         for cmd, info in self.commands_dict.items():
-            print(f"- {cmd} : {info["description"]}")
+            self.deliver_Output(f"- {cmd} : {info["description"]}")
             
-    def handle_new(self, args=None):
+    def handle_new_conversation(self, args=None):
         self.agent.restart_session()
         self.agent.chat_history.append("New Session Started.")
         self.handle_clear()
             
-    def handle_clear(self, args=None):
+    def handle_clear_terminal(self, args=None):
         if os.name == 'nt':
             os.system('cls')
         else:
             os.system('clear')
             
-    def handle_load(self, args):
-        if not args:
-            print("Please provide path to file or filename")
-            return
-        
-        if not isinstance(args, list):
-            file_path = args
-        
+    def handle_load_conversation(self, file_path : str):
+        #Check if the history file can be located
+        if not file_path:
+            self.deliver_Output("Please provide path to file or filename")
+            return        
+
         if not os.path.exists(file_path):
-            print("File not found.")
-            return
+            #Create history file if not exists
+            self.deliver_Output("File not found. Creating new history...")
+            chat_dir_path = "data"
+            os.makedirs(chat_dir_path, exist_ok=True)
+            chat_dir_path = os.path.join(chat_dir_path, "chat_history.json")
+            newChatFile = open(chat_dir_path, "w")
+            file_path = newChatFile
+        
+        #Load history to chat history
         try:
             with open(file_path, "r", encoding="utf-8") as file:
                 loaded_history = json.load(file)
+                #Add cap op convos wat load na bot
+                
                 if isinstance(loaded_history, list):
                     self.agent.chat_history = loaded_history
+                    
                 else:
-                    print("There was an issue: Loaded History is not list")
+                    self.deliver_Output("There was an issue: Loaded History is not list")
+                    
         except json.JSONDecodeError:
-            print("Error: Failed to decode JSON.")
+            self.deliver_Output("Error: Failed to decode JSON.")
             
         except Exception as e:
-            print(f"An error has occured during loading: {e}")
+            self.deliver_Output(f"An error has occured during loading: {e}")
                     
-    def handle_save(self, args):
-        if not args:
-            print("Please provide path to file or filename")
+    def handle_save_conversation(self, file_path : str):
+        if not file_path:
+            self.deliver_Output("Please provide path to file or filename")
             return
-        
-        if not isinstance(args, list):
-            file_path = args
         
         if not os.path.exists(file_path):
-            print("File not found.")
+            self.deliver_Output("Critical Error: History file not found.")
             return
-        else:
-            try:
-                with open(file_path, "w", encoding="utf-8") as file:
+            
+        try:
+            with open(file_path, "a", encoding="utf-8") as file:
                     json.dumps(self.agent.chat_history, file, indent=4)
-                    print("Chat history saved.")
+                    self.deliver_Output("Chat history saved.")
                     
-            except Exception as e:
-                print(f"An error has occured: {e}")
+        except Exception as e:
+                self.deliver_Output(f"An error has occured: {e}")
                 
-    def handle_history(self, args=None):
+    def handle_history_conversation(self, args=None):
         for lines in self.agent.chat_history:
-            print(lines)
+            self.deliver_Output(lines)
             
     def handle_info(self, args=None):
-        print("Name: ALT")
-        print("LLM Model: Gemini")
-        print("Description: Assistant for User")
+        self.deliver_Output("Name: ALT")
+        self.deliver_Output("LLM Model: Gemini")
+        self.deliver_Output("Description: Assistant for User")
+        
+    def deliver_Output(self, output_phrase : str): #Potencial modes to come..
+        print(output_phrase)
