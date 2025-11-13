@@ -1,36 +1,72 @@
-<h1>ALT, Your PDA with an opinion</h1>
-<h2>Description</h2>
-ALT is an AI assitant to help you with your playthrough of subnautica and subnautica below zero. ALT has everything, from helping you locate materials to participating in a debate about the local wild life.
+<h1 align="center">🧠 ALT — Your PDA with an Opinion</h1>
 
-This project has 2 major phases:
+---
+
+## 🧾 Description
+
+**ALT** is an intelligent AI assistant designed to help you on your *Subnautica* and *Below Zero* adventures.  
+From locating materials to debating the local wildlife, **ALT** has a lot to say — and sometimes, it even makes sense. 😉
+
+This project is being developed in **two major phases**:
+
 <ul>
-    <li>Commandline Assitant</li>
-    <li>Web Integraded </li>
+  <li><b>Phase 1:</b> Command-Line Assistant 🖥️</li>
+  <li><b>Phase 2:</b> Web-Integrated Version 🌐</li>
 </ul>
 
-The reason this is started at the cmdline is that I am unfamilier with web UI designing and specilise in backend designing. After ALT is completly built, I will develop an web UI and integrate this existing backend with it. But this a boring reason for looking at a terminal UI, so go read <a href="#backstory">ALT's Story</a> for a more entertaining reason.
+Why start in the terminal?  
+Because I specialize in **backend development** and wanted to focus on building ALT’s “brain” before giving it a shiny interface.  
+But if you’d rather hear a *cooler* reason, check out <a href="#backstory">ALT’s Story</a> below.
 
-<h2>Features(Implemented and to come...)</h2>
+---
+
+## ⚙️ Features (Implemented & Planned)
+
 <ul>
-    <li>RAG Support</li>
-    <li>Async System</li>
-    <li>Decision-Based AI</li>
-    <li>Custom Tool Utilization</li>
-    <li>Strong Knowledge Base</li>
-    <li>Build Knowledge According to Custom Criteria</li>
-    <li>Chat History Access</li>
+  <li>🧩 RAG (Retrieval-Augmented Generation) Support</li>
+  <li>⚡ Asynchronous System</li>
+  <li>🧠 Decision-Based AI Logic</li>
+  <li>🛠️ Custom Tool Utilization</li>
+  <li>📚 Strong Knowledge Base</li>
+  <li>🎯 Build Knowledge Using Custom Criteria</li>
+  <li>💬 Persistent Chat History Access</li>
+  <li>💭 Opinion Mode — ALT shares its thoughts on situations, items, or wildlife</li>
 </ul>
 
-This list will be exstended as development progress and I discover another cool thing to add. I aim to create a modular AI that I can use in future projects, subnautica was just the topic that came to mind when I thought of this idea
+This list will expand as development continues and I discover new features worth adding.  
+My long-term goal is to make **ALT** a *modular AI framework* I can reuse across future projects — Subnautica just happens to be the perfect testbed for now.
 
-<h2>Current Focus</h2>
+---
+
+## 🔧 Current Focus
+
 <ul>
-    <li>Make current code more modular</li>
-    <li>Chat History feautures should work should work as intened</li>
+  <li>Refactoring core systems for better modularity 🧱</li>
+  <li>Ensuring chat history features work as intended 🗃️</li>
 </ul>
 
-<h2 id="backstory">ALT's Story</h2>
-ALT is your PDA's advanced version, but Alterra only implemented it as a failover in drastic situations. And for our scenario, out PDA got eaten by a sandshark while making more databank entries. This leaves you with no choice but to fabricate an old computer that can run the emergency failover assitant. Your eyes meet with a black screen only providing the option to ask questions, no fancy UI, no greeting, just the option to ask a question or exit. Will this be able to adjust to the old technology or are you going to forsake knowledge for convience?
+---
 
+## 📖 ALT’s Story <a id="backstory"></a>
 
-I will further update the Readme file as development progresses.
+> “Your PDA is gone. The sandshark didn’t like you scanning it.”
+
+ALT is the advanced version of the standard PDA AI — but Alterra only activated it during *critical failures*.  
+After your PDA is devoured while cataloging new data entries, you’re left with no choice but to **fabricate an old terminal** capable of running the **emergency failover assistant**.  
+
+When you boot it up, you’re met with nothing but a black screen — no sleek UI, no friendly voice, just a blinking cursor and one prompt:  
+> *Ask a question... or exit.*
+
+Can this outdated AI adapt to primitive tech?  
+Or will you abandon knowledge for convenience?  
+The choice... is yours.
+
+---
+
+## 🧭 Development Notes
+
+This README will be updated as development progresses. Stay tuned for new features, story expansions, and UI previews.
+
+---
+
+> 🧠 *"ALT may not have feelings... but it definitely has opinions."*
