@@ -9,6 +9,7 @@ class AI_Agent():
         self.model = None
         self.chat_session = None
         self.prompt = prompt
+        self.MAX_MEMORY_ENTRIES = 30
         self.chat_history = []
         self.chat_history_path = chat_history_file_path
         self.assit_commands = Assit_Commands(self)
@@ -45,9 +46,11 @@ class AI_Agent():
             exit()
         
     def intitalize_agent(self):
+        #Configure Agent
         genai.configure(api_key=self.api)
         self.model = genai.GenerativeModel(self._get_available_model(), system_instruction=self.prompt)
         
+        #Check if knowledge base can be reached + Get Tools File
         data_path = os.path.join(os.path.dirname(__file__), "data", "subnautica_wiki.jsonl")
         if os.path.exists(data_path):
             self.search_tools = bot_tools.Tools(data_path)
@@ -55,29 +58,56 @@ class AI_Agent():
         else:
             return "Tools not found, Critical Error"
         
+        #Load past chats to memory
         if os.path.exists(self.chat_history_path):
-            if os.stat("chat_history.json").st_size > 0:
+            if os.stat(self.chat_history_path).st_size > 0:
                 self.assit_commands.handle_load_conversation(self.chat_history_path)
-            
-        self.chat_session = self.model.start_chat(history=[])
+                
+        else:
+            #Create history if file does not exists
+            self.chat_history_path = self.assit_commands.create_chat_history_file()
+        
+        #Establish Session
+        self.chat_session = self.model.start_chat(history=self.chat_history)
         
     def restart_session(self):
         self.chat_session = self.model.start_chat(history=[])
         self.chat_history = []
         self.assit_commands.deliver_Output("Chat has been restarted.")
         
-    def _handle_message(self, chat_session: genai.ChatSession, question : str):
-        if self.is_tool_needed(question):
-            tool_call = self.call_desired_tool
+    def save_short_term(self, combined_entry : dict):
+        if (len(self.chat_history) >= self.MAX_MEMORY_ENTRIES):
+            self.assit_commands.deliver_Output("Memory is full. Removing oldest conversation from short term memory.")
+            self.chat_history.pop(0)
+            self.chat_history.append(combined_entry)
+        
+        else:
+            self.chat_history.append(combined_entry)
+                     
+    def _handle_message(self, question : str):#format die output mooier, soos spasie en watnot
+        user_message_object = {"role": "user", "parts": [{"text": question}]}
+        
+        #Determine if tool is to be used
+        llm_tool_request_result = self.is_tool_needed(question)
+        if llm_tool_request_result != "NO_TOOL_NEEDED":
+            tool_call = self.call_desired_tool(llm_tool_request_result)
             final_response = self.use_tool_for_response(tool_call, question)
             
         else:
-            final_response = self.chat_session.send_message(question) 
+            model_response_object = self.chat_session.send_message(question)
             
-        self.chat_history = {"question" : question, "agent" : final_response}
+        final_response = model_response_object.text     
+
+        #Save to short-term memory
+        combined_entry = {"user": question, "model": final_response}
+        self.save_short_term(combined_entry)
+        
+        #Save to long-term history
+        self.assit_commands.handle_save_conversation(self.chat_history_path, user_message_object)
+        self.assit_commands.handle_save_conversation(self.chat_history_path, model_response_object)
             
             
-        #return result to app
+        #Return response 
         return final_response
             
     def is_tool_needed(self, question : str):
@@ -97,11 +127,10 @@ class AI_Agent():
         
         llm_repsonse_text = self.chat_session.send_message(tool_call_prompt).text.strip()
         
-        if llm_repsonse_text.upper() == "NO_TOOL_NEEDED":
-            return False
-        
+        if llm_repsonse_text.upper() != "NO_TOOL_NEEDED":
+            return llm_repsonse_text
         else:
-            return True
+            return "NO_TOOL_NEEDED"
                      
     def call_desired_tool(self, llm_response_text):
         #Clean llm respnse to see what tool is called
@@ -120,7 +149,8 @@ class AI_Agent():
         except json.JSONDecodeError:
                 return "Error: Could not parse LLM's tool call response."
              
-    def use_tool_for_response(self, tool_call : str, question : str):       
+    def use_tool_for_response(self, tool_call : str, question : str):  
+        #Extract details according to type of tool     
         if tool_call.get("tool_name") == "search_by_keyword" and "query" in tool_call:
             query = tool_call.get("query")
                         
@@ -147,21 +177,38 @@ class AI_Agent():
 class Assit_Commands():
     def __init__(self, agent_instance):
         self.agent = agent_instance
-        self.exit = self.handle_exit
-        self.help = self.handle_help
-        self.new_converstaion = self.handle_new_converstaion
-        self.load_conversation = self.handle_load_converstaion
-        self.save_conversation = self.handle_save_converstaion
-        self.clear_terminal = self.handle_clear_terminal
-        self.conversation_history = self.converstaion_handle_history
-        self.agent_info = self.handle_info
-        self.deliver_Output = self.deliver_Output
+        self.commands = {
+                "exit" : self.handle_exit,
+                "help": self.handle_help,
+                "clear": self.handle_clear_terminal,
+                "ouput": self.deliver_Output,
+                "create": self.create_chat_history_file,
+                "load": self.handle_load_conversation,
+                "save": self.handle_save_conversation,
+                "new": self.handle_new_conversation,
+                "info": self.handle_info,
+                "view_chats": self.handle_view_history
+        }
+        
+    def run_command(self, line : str):
+        parts = line[:1].strip().split()
+        cmd = parts[0]
+        arg = parts[:1] 
+        
+        if cmd in self.commands:
+            self.commands[cmd](arg)
+        
+        else:
+            self.deliver_Output(f"Unknown Command Present: cmd - {cmd}")
         
     def handle_exit(self, args=None):
+        #Saves current chat history and exits program
+        self.handle_save_conversation(self.agent.chat_hisory_path)
         self.deliver_Output("Closing ALT. Safe travels survivior...")
         exit()
         
     def handle_help(self, args=None):
+        #Used in development for easy access + adds transparency 
         self.deliver_Output("Loading command dictionary...")
         for cmd, info in self.commands_dict.items():
             self.deliver_Output(f"- {cmd} : {info["description"]}")
@@ -177,40 +224,46 @@ class Assit_Commands():
         else:
             os.system('clear')
             
-    def handle_load_conversation(self, file_path : str):
+    def create_chat_history_file(self, args = None):
+        self.deliver_Output("File not found. Creating new history...")
+        relative_user_path = os.path.join(os.getcwd(), "user_data");
+        os.makedirs(relative_user_path, exist_ok=True)
+        chat_dir_path = os.path.join(relative_user_path, "chat_history.jsonl")
+        with open(chat_dir_path, "w") as f:
+            pass
+        
+        return chat_dir_path
+            
+    def handle_load_conversation(self, file_path : str, limit = 10):
         #Check if the history file can be located
         if not file_path:
             self.deliver_Output("Please provide path to file or filename")
             return        
 
-        if not os.path.exists(file_path):
-            #Create history file if not exists
-            self.deliver_Output("File not found. Creating new history...")
-            chat_dir_path = "data"
-            os.makedirs(chat_dir_path, exist_ok=True)
-            chat_dir_path = os.path.join(chat_dir_path, "chat_history.json")
-            newChatFile = open(chat_dir_path, "w")
-            file_path = newChatFile
-        
         #Load history to chat history
+        loaded_history = []
         try:
             with open(file_path, "r", encoding="utf-8") as file:
-                loaded_history = json.load(file)
-                #Add cap op convos wat load na bot
+                all_lines = file.readlines()           
+                reversed_lines = all_lines[::-1]
                 
-                if isinstance(loaded_history, list):
-                    self.agent.chat_history = loaded_history
-                    
-                else:
-                    self.deliver_Output("There was an issue: Loaded History is not list")
+                lines_to_process = reversed_lines[::limit]
+                for lines in lines_to_process:
+                    if lines.strip():
+                        loaded_history.append(json.loads(lines))
                     
         except json.JSONDecodeError:
             self.deliver_Output("Error: Failed to decode JSON.")
             
+        except FileNotFoundError:
+            loaded_history = []
+            
         except Exception as e:
             self.deliver_Output(f"An error has occured during loading: {e}")
+            
+        self.agent.chat_history = loaded_history
                     
-    def handle_save_conversation(self, file_path : str):
+    def handle_save_conversation(self, file_path : str, line_to_save : str ):
         if not file_path:
             self.deliver_Output("Please provide path to file or filename")
             return
@@ -220,16 +273,12 @@ class Assit_Commands():
             return
             
         try:
+            json_line = json.dumps(line_to_save)
             with open(file_path, "a", encoding="utf-8") as file:
-                    json.dumps(self.agent.chat_history, file, indent=4)
-                    self.deliver_Output("Chat history saved.")
+                    file.write(json_line + "\n")
                     
         except Exception as e:
                 self.deliver_Output(f"An error has occured: {e}")
-                
-    def handle_history_conversation(self, args=None):
-        for lines in self.agent.chat_history:
-            self.deliver_Output(lines)
             
     def handle_info(self, args=None):
         self.deliver_Output("Name: ALT")
@@ -238,3 +287,8 @@ class Assit_Commands():
         
     def deliver_Output(self, output_phrase : str): #Potencial modes to come..
         print(output_phrase)
+        
+    def handle_view_history(self, filepath : str):
+        self.deliver_Output("Presenting History From Most Recent Chats...")
+        for lines in json.dumps(filepath):
+            self.deliver_Output(lines)
