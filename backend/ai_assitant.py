@@ -9,10 +9,11 @@ class AI_Agent():
         self.model = None
         self.chat_session = None
         self.prompt = prompt
-        self.MAX_MEMORY_ENTRIES = 30
+        self.MAX_MEMORY_ENTRIES = 5
         self.chat_history = []
         self.chat_history_path = chat_history_file_path
         self.assit_commands = Assit_Commands(self)
+        self.tools = None
     
     def _get_available_model(self):
         available_model_name = None
@@ -53,7 +54,7 @@ class AI_Agent():
         #Check if knowledge base can be reached + Get Tools File
         data_path = os.path.join(os.path.dirname(__file__), "data", "subnautica_wiki.jsonl")
         if os.path.exists(data_path):
-            self.search_tools = bot_tools.Tools(data_path)
+            self.tools = bot_tools.Tools(data_path)
             
         else:
             return "Tools not found, Critical Error"
@@ -68,7 +69,7 @@ class AI_Agent():
             self.chat_history_path = self.assit_commands.create_chat_history_file()
         
         #Establish Session
-        self.chat_session = self.model.start_chat(history=self.chat_history)
+        self.chat_session = self.model.start_chat(history=[])
         
     def restart_session(self):
         self.chat_session = self.model.start_chat(history=[])
@@ -87,11 +88,17 @@ class AI_Agent():
     def _handle_message(self, question : str):#format die output mooier, soos spasie en watnot
         user_message_object = {"role": "user", "parts": [{"text": question}]}
         
+        #First look in short-term memory
+        if self.chat_history:
+            is_relevant = self.tools.scan_history(self.chat_history, question)
+            if is_relevant:
+                return is_relevant
+        
         #Determine if tool is to be used
         llm_tool_request_result = self.is_tool_needed(question)
         if llm_tool_request_result != "NO_TOOL_NEEDED":
             tool_call = self.call_desired_tool(llm_tool_request_result)
-            final_response = self.use_tool_for_response(tool_call, question)
+            model_response_object = self.use_tool_for_response(tool_call, question)
             
         else:
             model_response_object = self.chat_session.send_message(question)
@@ -99,13 +106,11 @@ class AI_Agent():
         final_response = model_response_object.text     
 
         #Save to short-term memory
-        combined_entry = {"user": question, "model": final_response}
+        combined_entry = self.tools.formatEntry(question, final_response)
         self.save_short_term(combined_entry)
         
-        #Save to long-term history
-        self.assit_commands.handle_save_conversation(self.chat_history_path, user_message_object)
-        self.assit_commands.handle_save_conversation(self.chat_history_path, model_response_object)
-            
+        #Save a summarized version of the chats
+        self.summarize_convos_save(combined_entry)
             
         #Return response 
         return final_response
@@ -154,7 +159,7 @@ class AI_Agent():
         if tool_call.get("tool_name") == "search_by_keyword" and "query" in tool_call:
             query = tool_call.get("query")
                         
-            search_results = self.search_tools.search_by_keyword(query)
+            search_results = self.tools.search_by_keyword(query)
                 
             search_result_prompt = f"""
             You are a helpful assistant for the game Subnautica.
@@ -168,12 +173,26 @@ class AI_Agent():
             Based on this information, provide a detailed and helpful answer.
                                 
             """
-            final_response = self.chat_session.send_message(search_result_prompt).text
+            final_response = self.chat_session.send_message(search_result_prompt)
             return final_response
                         
         else:
             return "Error: LLM could not retrieve a valid JSON object."
+        
+        
+    def summarize_convos_save(self, entry): #fix die later, logic and implemetation errors
+        summarize_entry_prompt = f"""You are an agent that specilies in summarization. You need to summarize the follow content of the list 
+                                as one usefull summary so that other agents can use to assit them in querie. 
                                 
+                                Unsummirised Entry : {entry}
+                                
+                                Ensure that the summary is done perfect, keep any keywords that is present to ensure
+                                an accurate summary of the entry.
+                                """
+                                
+        summairized_entry = self.chat_session.send_message(summarize_entry_prompt).text
+        self.assit_commands.handle_save_conversation(self.chat_history_path, summairized_entry)                     
+
 class Assit_Commands():
     def __init__(self, agent_instance):
         self.agent = agent_instance
@@ -187,13 +206,25 @@ class Assit_Commands():
                 "save": self.handle_save_conversation,
                 "new": self.handle_new_conversation,
                 "info": self.handle_info,
-                "view_chats": self.handle_view_history
+                "view_chats": self.handle_view_history,
+                "clean_history": self.handle_clean_history
         }
+        self.developer_reserved_command = ["output", 
+                                           "create", 
+                                           "load", 
+                                           "save"]
         
     def run_command(self, line : str):
-        parts = line[:1].strip().split()
+        parts = line[1:].strip().split()
         cmd = parts[0]
-        arg = parts[:1] 
+        if len(parts) > 1:
+            arg = parts[1:][0]
+            
+        else:
+            arg = None
+            
+        if cmd in self.developer_reserved_command:
+            self.deliver_Output(f"Entered Commad: {cmd}, is a internal command only for development use.")
         
         if cmd in self.commands:
             self.commands[cmd](arg)
@@ -202,8 +233,6 @@ class Assit_Commands():
             self.deliver_Output(f"Unknown Command Present: cmd - {cmd}")
         
     def handle_exit(self, args=None):
-        #Saves current chat history and exits program
-        self.handle_save_conversation(self.agent.chat_hisory_path)
         self.deliver_Output("Closing ALT. Safe travels survivior...")
         exit()
         
@@ -216,7 +245,7 @@ class Assit_Commands():
     def handle_new_conversation(self, args=None):
         self.agent.restart_session()
         self.agent.chat_history.append("New Session Started.")
-        self.handle_clear()
+        self.handle_clear_terminal()
             
     def handle_clear_terminal(self, args=None):
         if os.name == 'nt':
@@ -271,11 +300,14 @@ class Assit_Commands():
         if not os.path.exists(file_path):
             self.deliver_Output("Critical Error: History file not found.")
             return
+        
+        saveable_line = {"summary": line_to_save}
             
         try:
-            json_line = json.dumps(line_to_save)
+            json_line = json.dumps(saveable_line)
             with open(file_path, "a", encoding="utf-8") as file:
-                    file.write(json_line + "\n")
+                file.flush()
+                file.write(json_line + "\n")
                     
         except Exception as e:
                 self.deliver_Output(f"An error has occured: {e}")
@@ -290,5 +322,6 @@ class Assit_Commands():
         
     def handle_view_history(self, filepath : str):
         self.deliver_Output("Presenting History From Most Recent Chats...")
-        for lines in json.dumps(filepath):
-            self.deliver_Output(lines)
+        
+    def handle_clean_history(self, filepath):
+        open(filepath, "w").close()

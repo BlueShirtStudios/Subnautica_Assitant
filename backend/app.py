@@ -14,6 +14,7 @@ while (run):
     user_question = input("What is you question? ")
     if (user_question[0] == "/"):
         ALT.assit_commands.run_command(user_question)
-        
-    response = ALT._handle_message(user_question)
-    ALT.assit_commands.deliver_Output(response)
+    
+    else:
+        response = ALT._handle_message(user_question)
+        ALT.assit_commands.deliver_Output(response)
