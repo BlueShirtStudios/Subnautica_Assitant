@@ -50,3 +50,26 @@ class Tools:
                                           "categories": entry.get("categories", "N/A")})
                         
         return search_result
+    
+    def scan_history(self, chat_memory : list, question : str):
+        query_key_words = set(question.lower().split())
+        
+        for entry in reversed(chat_memory):
+            summary_text = entry.get("summary", '')
+            searchable_text = summary_text.lower()
+            
+            is_relevant = False
+            for word in query_key_words:
+                if word in searchable_text:
+                    is_relevant = True
+                    break
+                
+        if is_relevant:
+            return summary_text
+            
+        return None
+    
+    def formatEntry(self, question : str, response : str):
+        combined_entry = {"user": question, "model": response}
+        return combined_entry
+               
