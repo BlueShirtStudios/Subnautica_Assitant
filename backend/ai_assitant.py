@@ -85,7 +85,7 @@ class AI_Agent():
         else:
             self.chat_history.append(combined_entry)
                      
-    def _handle_message(self, question : str):#format die output mooier, soos spasie en watnot
+    def _handle_message(self, question : str):
         user_message_object = {"role": "user", "parts": [{"text": question}]}
         
         #First look in short-term memory
@@ -180,7 +180,8 @@ class AI_Agent():
             return "Error: LLM could not retrieve a valid JSON object."
         
         
-    def summarize_convos_save(self, entry): #fix die later, logic and implemetation errors
+    def summarize_convos_save(self, entry):
+        #Send entry to summarize current questiona and answer as a summary
         summarize_entry_prompt = f"""You are an agent that specilies in summarization. You need to summarize the follow content of the list 
                                 as one usefull summary so that other agents can use to assit them in querie. 
                                 
@@ -191,6 +192,8 @@ class AI_Agent():
                                 """
                                 
         summairized_entry = self.chat_session.send_message(summarize_entry_prompt).text
+        
+        #Save summary to long-term storage
         self.assit_commands.handle_save_conversation(self.chat_history_path, summairized_entry)                     
 
 class Assit_Commands():
@@ -215,17 +218,23 @@ class Assit_Commands():
                                            "save"]
         
     def run_command(self, line : str):
+        #Clean line to get command
         parts = line[1:].strip().split()
         cmd = parts[0]
+        
+        #Check if command has arguments
         if len(parts) > 1:
             arg = parts[1:][0]
             
         else:
             arg = None
             
+        #Check if command is allowed to executed
         if cmd in self.developer_reserved_command:
             self.deliver_Output(f"Entered Commad: {cmd}, is a internal command only for development use.")
+            exit()
         
+        #Execute Command
         if cmd in self.commands:
             self.commands[cmd](arg)
         
@@ -237,7 +246,7 @@ class Assit_Commands():
         exit()
         
     def handle_help(self, args=None):
-        #Used in development for easy access + adds transparency 
+        #Used in development for easy access + adds transparency - Still need to fix
         self.deliver_Output("Loading command dictionary...")
         for cmd, info in self.commands_dict.items():
             self.deliver_Output(f"- {cmd} : {info["description"]}")
@@ -263,7 +272,7 @@ class Assit_Commands():
         
         return chat_dir_path
             
-    def handle_load_conversation(self, file_path : str, limit = 10):
+    def handle_load_conversation(self, file_path : str, limit = 5):
         #Check if the history file can be located
         if not file_path:
             self.deliver_Output("Please provide path to file or filename")
@@ -320,8 +329,22 @@ class Assit_Commands():
     def deliver_Output(self, output_phrase : str): #Potencial modes to come..
         print(output_phrase)
         
-    def handle_view_history(self, filepath : str):
+    def handle_view_history(self, filepath : str, limit = 5):
         self.deliver_Output("Presenting History From Most Recent Chats...")
+        self.deliver_Output("History will be loaded as a summary of conversations")
+        with open(filepath, "r", encoding="utf-8") as f:
+            all_lines = f.readlines()           
+            reversed_lines = all_lines[::-1]
+            lines_to_process = reversed_lines[::limit]
+            for line in lines_to_process:
+                try:
+                    entry = json.loads(line)
+                
+                except json.JSONDecodeError:
+                    continue
+                  
+                summary = entry.get("summary", '')
+                self.deliver_Output(summary)
         
     def handle_clean_history(self, filepath):
         open(filepath, "w").close()
