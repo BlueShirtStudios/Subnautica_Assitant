@@ -1,5 +1,6 @@
 import json
 import os
+import re
 from collections import defaultdict
 import requests
 
@@ -52,17 +53,29 @@ class Tools:
         return search_result
     
     def scan_history(self, chat_memory : list, question : str):
-        query_key_words = set(question.lower().split())
+        stopwords = {"the", "is", "an", "a", "and", "to", "of", "for", "in", "on", "it", "this", "that", "with"}
+        match_count = 0
         
+        #Build a clean word query
+        query_key_words = set()
+        for word in set(question.lower().split()):
+            if word not in stopwords:
+              query_key_words.add(word)  
+        
+        #Compare keywords with words in history
         for entry in reversed(chat_memory):
             summary_text = entry.get("summary", '')
             searchable_text = summary_text.lower()
             
             is_relevant = False
             for word in query_key_words:
-                if word in searchable_text:
-                    is_relevant = True
-                    break
+                pattern = rf"\b{re.escape(word)}\b"
+                if re.search(pattern, searchable_text):
+                    match_count += 1
+                    
+            if match_count >= 2:
+                is_relevant = True
+                break
                 
         if is_relevant:
             return summary_text

@@ -11,7 +11,7 @@ run = True
 
 #Run ALT
 while (run):
-    user_question = input("What is you question? ")
+    user_question = input("What is you question? ").strip()
     if (user_question[0] == "/"):
         ALT.assit_commands.run_command(user_question)
     
