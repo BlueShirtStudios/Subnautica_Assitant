@@ -1,0 +1,59 @@
+Screen {
+    layout: vertical;
+    height: 100%;
+}
+
+* {
+    color: #00FF99;
+    background: #000022;
+}
+
+#app_grid {
+    height: 100%;
+    layout: grid;
+    grid-size: 3 1;
+    grid-columns: 2fr 6fr 2fr;
+}
+
+.app_panel {
+    border: solid #006655;
+    padding: 1;
+    overflow-y: auto;
+}
+
+#status_panel {
+    background: #001133;
+}
+
+#chat_panel {
+    border-left: none;
+    border-right: none;
+    layout: vertical;
+}
+
+#history_panel {
+    background: #000011;
+}
+
+/* Styling for the chat display area */
+#chat_display {
+    height: 1fr;
+    overflow-y: auto;
+    padding: 1;
+}
+
+/* Styling for the input area */
+#input_area {
+    height: auto;
+    layout: horizontal;
+    padding: 0 1;
+}
+
+/* Ensure Input is flexible and Button is fixed width */
+#user_input {
+    width: 1fr;
+}
+
+#send_button {
+    width: 12;
+}
