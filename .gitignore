@@ -11,7 +11,11 @@ knowledge_base/__pycache__
 .vscode
 
 #Data file created in code
-data/
+backend/data
+user_data
 
 #Log files
 data/logs/crawler.log
+
+#Config Files
+backend/db_secrect.py
