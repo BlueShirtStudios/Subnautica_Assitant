@@ -1,18 +1,18 @@
-import os
-import json
 from google import genai
 from google.genai import types
 from google.genai.errors import APIError, ClientError, ServerError
+from data_access import UserDataAccessor
+
+ADA = UserDataAccessor() #Agent Data Accessor
 
 class Gemini_AI_Agent():
-    def __init__(self, configs : dict):
+    def __init__(self, configs : dict, user : object):
         self.client = genai.Client()
         self.model = self._get_available_model(self.client)
         self.chat_session = None
         self.custom_configs = self._create_config_object(configs)
-        self.MAX_MEMORY_ENTRIES = 5
-        self.session_chat_history = []
-
+        self.user = user
+        
     def _get_available_model(self, client):
         available_model_name = None
         preferred_prefixes = ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-flash-latest']
@@ -50,6 +50,9 @@ class Gemini_AI_Agent():
         )
         
         return generation_config
+    
+    def save_conversation(self):
+        print("Do now now")
     
     def send_message(self, content : str) -> str:
         #Create new session on first talks
