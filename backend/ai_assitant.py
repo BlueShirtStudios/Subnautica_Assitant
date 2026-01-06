@@ -2,11 +2,12 @@ from google import genai
 from google.genai import types
 from google.genai.errors import APIError, ClientError, ServerError
 from data_access import UserDataAccessor
+from user_template import User
 
 ADA = UserDataAccessor() #Agent Data Accessor
 
 class Gemini_AI_Agent():
-    def __init__(self, configs : dict, user : object):
+    def __init__(self, configs : dict, user : User):
         self.client = genai.Client()
         self.model = self._get_available_model(self.client)
         self.chat_session = None
@@ -51,8 +52,23 @@ class Gemini_AI_Agent():
         
         return generation_config
     
-    def save_conversation(self):
-        print("Do now now")
+    def _save_conversation(self, user_content : str, agent_content : str):
+        ADA.add_new_message(self.user_instance.conversationID,
+                            user_content,
+                            "USER"        
+        )
+        
+        ADA.add_new_message(self.user_instance.conversationID,
+                            agent_content,
+                            "AGENT"        
+        )
+        
+    def _update_user_up_time(self):
+        ADA.update_user_active_time(self.user_instance.userID)
+        
+    def _load_recent_chats(self, userID):
+        list_recent_convoID = []
+        list_recent_convoID = ADA.get_recent_conversations(userID)
     
     def send_message(self, content : str) -> str:
         #Create new session on first talks
@@ -65,6 +81,16 @@ class Gemini_AI_Agent():
         #Send Message to the agent
         try:
             response_object = self.chat_session.send_message(content)
+            
+            #Make db changes accordingly
+            try:
+                self._save_conversation(content, response_object.text)
+                self._update_user_up_time()
+                
+            except Exception as e:
+                print(f"UNEXPECTED ERROR occured during save process : {e}")
+                
+            #Return agent response even if db goes sideways
             return response_object.text
         
         #Handle errors accordingly

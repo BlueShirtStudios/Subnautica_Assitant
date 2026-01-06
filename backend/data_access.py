@@ -12,7 +12,13 @@ LOGIN_QUERY  = "SELECT userID, password, name FROM users WHERE username = %s"
 
 CREATE_CONVERSATION_QUERY = "INSERT INTO conversations (userID, startedAt, EndedAt) VALUES (%s, %s, %s) RETURNING conversationID"
 
-SAVE_CONVERSATION_QUERY = "INSERT INTO "
+SAVE_MESSAGE_QUERY = "INSERT INTO messages (conversationID, role, content, sentAt) VALUES (%s, %s, %s, %s)"
+
+UPDATE_USER_LAST_ACTIVE = "UPDATE users SET lastActive WHERE userID = %s"
+
+GET_USER_CONVERSATIONS = "SELECT conversationID FROM conversations WHERE userID = %s AND conversationID =< %s AND conversations => %s"
+
+GET_RECENT_MESSAGES = "SELECT "
                
 class UserDataAccessor:
     def __init__(self):
@@ -78,4 +84,57 @@ class UserDataAccessor:
             except Exception as e:
                 db.connection.rollback()
                 print(f"An error occured: {e}")
+                
+                
+    def add_new_message(self, convoID : int, content : str, role : str):
+        sentAt = datetime.now()
+        with self.db as db:
+            try:
             
+                db.cursor.execute(SAVE_MESSAGE_QUERY, (convoID, role, content, sentAt,))
+                db.connection.commit()
+        
+            except ProgrammingError as e:
+                    db.connection.rollback()
+                    print(f"A programming error occured: {e}")
+                    
+            except Exception as e:
+                    db.connection.rollback()
+                    print(f"An error occured: {e}")
+                    
+    def update_user_active_time(self, userID : int):
+        currentTime = datetime.now()
+        with self.db as db:
+            try:
+                db.cursor.execute(UPDATE_USER_LAST_ACTIVE, (userID,))
+                db.connection.commit()
+            
+            except ProgrammingError as e:
+                db.connection.rollback()
+                print(f"A programming error occured: {e}")
+                        
+            except Exception as e:
+                db.connection.rollback()
+                print(f"An error occured: {e}")
+                
+    def get_recent_conversations(self, userID : int, last_conversationID : int) -> list[int]:
+        with self.db as db:
+            try:
+                db.cursor.execute(GET_USER_CONVERSATIONS, (userID, last_conversationID, last_conversationID - 5,))
+                records = db.connection.cursor.fetchall()
+                
+                #Convert Tupled Records to Single list
+                list_recent_convos = []
+                for record in records:
+                    list_recent_convos.append(record[0])
+                    
+                return list_recent_convos
+            
+            except ProgrammingError as e:
+                db.connection.rollback()
+                print(f"A programming error occured: {e}")
+                        
+            except Exception as e:
+                db.connection.rollback()
+                print(f"An error occured: {e}")
+        
