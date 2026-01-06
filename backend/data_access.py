@@ -3,14 +3,14 @@ from psycopg2 import ProgrammingError, IntegrityError, OperationalError, DataErr
 from datetime import datetime
 import bcrypt
 import binascii
-import user_template
+from user_template import User
 
 #Query Templates
 ADD_NEW_USER = "INSERT INTO users (password, name, surname, email, createdAt, lastActive, username) VALUES (%s, %s, %s, %s, %s, %s, %s)"
 
 LOGIN_QUERY  = "SELECT userID, password, name FROM users WHERE username = %s"
 
-CREATE_CONVERSATION_QUERY = "INSERT INTO conversations (userID, startedAt, EndedAt) VALUES (%s, %s, %s)"
+CREATE_CONVERSATION_QUERY = "INSERT INTO conversations (userID, startedAt, EndedAt) VALUES (%s, %s, %s) RETURNING conversationID"
 
 SAVE_CONVERSATION_QUERY = "INSERT INTO "
                
@@ -35,7 +35,7 @@ class UserDataAccessor:
                 db.connection.rollback()
                 print(f"An error occured: {e}")
             
-    def login_user(self, username : str, password : str) -> user_template:
+    def login_user(self, username : str, password : str) -> User:
         with self.db as db:
             try:
                 db.cursor.execute(LOGIN_QUERY, (username,))
@@ -52,8 +52,8 @@ class UserDataAccessor:
                 
                 if bcrypt.checkpw(password.encode(), db_hash_bytes):
                     convoID = self.create_conversation_record(user_id)
-                    User = user_template(user_id, name, username, convoID)
-                    return User
+                    user_instance = User(user_id, name, username, convoID)
+                    return user_instance
                 
                 else:
                     return None
@@ -68,6 +68,8 @@ class UserDataAccessor:
             try:
                 db.cursor.execute(CREATE_CONVERSATION_QUERY, (userID, currentTime, None,))
                 db.connection.commit()
+                conversation_id = db.cursor.fetchone()[0]
+                return conversation_id
                 
             except ProgrammingError as e:
                 db.connection.rollback()
