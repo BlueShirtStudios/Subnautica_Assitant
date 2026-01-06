@@ -8,8 +8,8 @@ from user_template import User
 UDA = UserDataAccessor()
 
 #This is where the implentation of the agent lies  
-def boot_emergency_systems(user) -> str:
-    ALT = Gemini_AI_Agent(main_config.AI_CONFIGS, user)
+def boot_emergency_systems(user_instance : User) -> str:
+    ALT = Gemini_AI_Agent(main_config.AI_CONFIGS, user_instance)
 
     run = True
 
@@ -53,14 +53,14 @@ match user_option:
            
            #Checks if a user with those credentials exists
            user_instance = UDA.login_user(tuple_entered_user[0], tuple_entered_user[1])
-           if not User:
+           if not user_instance:
             print("Username or password does not match. Please try again.")
             log_attempt += 1
             print(f"Remaining login attempt: {3 - log_attempt}")
             
            else:
                print("Successfully logged in. Booting emergency systems...")
-               boot_emergency_systems(User)
+               boot_emergency_systems(user_instance)
          
     case _:
         print("Invalid case option occured.")
