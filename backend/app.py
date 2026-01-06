@@ -2,13 +2,14 @@ import main_config
 import input_handler as iph
 from data_access import UserDataAccessor
 from ai_assitant import Gemini_AI_Agent
+from user_template import User
 
 #Intialize Instances for run
 UDA = UserDataAccessor()
 
 #This is where the implentation of the agent lies  
-def boot_emergency_systems():
-    ALT = Gemini_AI_Agent(main_config.AI_CONFIGS)
+def boot_emergency_systems(user) -> str:
+    ALT = Gemini_AI_Agent(main_config.AI_CONFIGS, user)
 
     run = True
 
@@ -51,15 +52,15 @@ match user_option:
            tuple_entered_user = iph.attempt_login()
            
            #Checks if a user with those credentials exists
-           userID = UDA.login_user(tuple_entered_user[0], tuple_entered_user[1])
-           if not userID:
+           user_instance = UDA.login_user(tuple_entered_user[0], tuple_entered_user[1])
+           if not User:
             print("Username or password does not match. Please try again.")
             log_attempt += 1
             print(f"Remaining login attempt: {3 - log_attempt}")
             
            else:
                print("Successfully logged in. Booting emergency systems...")
-               boot_emergency_systems()
+               boot_emergency_systems(User)
          
     case _:
         print("Invalid case option occured.")

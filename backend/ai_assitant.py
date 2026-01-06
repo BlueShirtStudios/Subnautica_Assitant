@@ -11,7 +11,7 @@ class Gemini_AI_Agent():
         self.model = self._get_available_model(self.client)
         self.chat_session = None
         self.custom_configs = self._create_config_object(configs)
-        self.user = user
+        self.user_instance = user
         
     def _get_available_model(self, client):
         available_model_name = None
