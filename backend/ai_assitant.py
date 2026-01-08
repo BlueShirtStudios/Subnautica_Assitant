@@ -49,7 +49,7 @@ class Gemini_AI_Agent():
         generation_config = types.GenerateContentConfig(
             system_instruction=system_instructions
         )
-        
+
         return generation_config
     
     def _save_conversation(self, user_content : str, agent_content : str):
@@ -68,8 +68,60 @@ class Gemini_AI_Agent():
         
     def _load_recent_chats(self, userID):
         list_recent_convoID = []
-        list_recent_convoID = ADA.get_recent_conversations(userID)
+        list_recent_convoID = ADA.get_recent_conversationsIDs(userID)
+        self.user_instance.recent_memory = ADA.get_recent_messages(list_recent_convoID)
+        
+    def initialize_agent_features(self, userID : int):
+        #Load and Prep all features for the agent
+        try:
+            self._load_recent_chats(userID)
+            
+        except Exception as e:
+            print(f"UNFORSEEN ERROR occurred during feature initialization: {e}")
+        
+    def _tokenize(text: str) -> set[str]:
+        #Elimates all unneeded words in history
+        set_tokens = set()
+        for word in text.split():
+            word = word.lower()
+            if len(word) > 2:
+                set_tokens.add(word)
+                
+        return set_tokens
     
+    def _preprocess_conversations(self):
+        #Checks if message was tokenized else will tokenize it
+        for msg in self.user_instance.recent_memory["message_details"]:
+            if msg["role"] == "USER":
+                msg["tokens"] = self._tokenize(msg["content"])
+                
+    def _jaccard_similarity(a: set, b: set) -> float:
+        if not a or not b:
+            return 0.0
+        
+        return len(a & b) / len(a | b)
+    
+    def _find_similar_question(self, question: str, threshold: float = 0.5) -> float:
+        q_tokens = self._tokenize(question)
+        
+        for msg in self.user_instance.recent_memory["message_details"]:
+            if msg["role"] != "USER":
+                continue
+            
+            score = self._jaccard_similarity(q_tokens, msg["tokens"])
+            if score >= threshold:
+                return msg, score
+    
+    def _read_through_short_memory(self, question : str) -> str:
+        """
+        This function does not work right now, my dictionary structure is not consitent - Will
+        fix later or next coding session, trust 
+        """
+        self._preprocess_conversations()
+        matched_user_msg, score = self._find_similar_question(question)
+        
+        messages = self.user_instance.recent_memory["message_details"]
+
     def send_message(self, content : str) -> str:
         #Create new session on first talks
         if self.chat_session is None:
@@ -77,6 +129,8 @@ class Gemini_AI_Agent():
                 model=self.model,
                 config=self.custom_configs
                 )
+        #Seach recent conversations before LLm request
+        self._read_through_short_memory(content)
 
         #Send Message to the agent
         try:

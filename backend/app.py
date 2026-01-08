@@ -10,18 +10,16 @@ UDA = UserDataAccessor()
 #This is where the implentation of the agent lies  
 def boot_emergency_systems(user_instance : User) -> str:
     ALT = Gemini_AI_Agent(main_config.AI_CONFIGS, user_instance)
+    ALT.initialize_agent_features(user_instance.userID)
+    UDA.update_user_active_time(user_instance.userID)
 
     run = True
 
     #Run ALT
     while (run):
         user_question = input("What is you question? ").strip()
-        if (user_question[0] == "/"):
-            ALT.assit_commands.run_command(user_question)
-        
-        else:
-            response = ALT.send_message(user_question)
-            print(response)
+        response = ALT.send_message(user_question)
+        print(response)
 
 #Display an UI that looks like a app calling for help
 print("---- Emergency System Failover ----")
