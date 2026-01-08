@@ -1,17 +1,17 @@
-<h1 align="center">🧠 ALT — Your PDA with an Opinion</h1>
+<h1 align="center"> ALT — Your Subnautica Buddie</h1>
 
 ---
 
 ## 🧾 Description
 
 **ALT** is an intelligent AI assistant designed to help you on your *Subnautica* and *Below Zero* adventures.  
-From locating materials to debating the local wildlife, **ALT** has a lot to say — and sometimes, it even makes sense. 😉
+From locating materials to debating the local wildlife. 
 
 This project is being developed in **two major phases**:
 
 <ul>
-  <li><b>Phase 1:</b> Command-Line Assistant 🖥️</li>
-  <li><b>Phase 2:</b> Web-Integrated Version 🌐</li>
+  <li><b>Phase 1:</b> Command-Line Assistant </li>
+  <li><b>Phase 2:</b> Web-Integrated Version </li>
 </ul>
 
 Why start in the terminal?  
@@ -23,26 +23,26 @@ But if you’d rather hear a *cooler* reason, check out <a href="#backstory">ALT
 ## ⚙️ Features (Implemented & Planned)
 
 <ul>
-  <li>🧩 RAG (Retrieval-Augmented Generation) Support</li>
-  <li>⚡ Asynchronous System</li>
-  <li>🧠 Decision-Based AI Logic</li>
-  <li>🛠️ Custom Tool Utilization</li>
-  <li>📚 Strong Knowledge Base</li>
-  <li>🎯 Build Knowledge Using Custom Criteria</li>
-  <li>💬 Persistent Chat History Access</li>
-  <li>💭 Opinion Mode — ALT shares its thoughts on situations, items, or wildlife</li>
+  <li> RAG (Retrieval-Augmented Generation) Support</li>
+  <li> Asynchronous System</li>
+  <li> Decision-Based AI Logic</li>
+  <li> Custom Tool Utilization</li>
+  <li> Strong Knowledge Base</li>
+  <li> Build Knowledge Using Custom Criteria</li>
+  <li> Persistent Chat History Access</li>
+  <li> Opinion Mode — ALT shares its thoughts on situations, items, or wildlife</li>
 </ul>
 
 This list will expand as development continues and I discover new features worth adding.  
-My long-term goal is to make **ALT** a *modular AI framework* I can reuse across future projects — Subnautica just happens to be the perfect testbed for now.
+ALT serves as a theme for the project, but main attraction is build a moduler framework I can re-use in future projects using Google's Gemini.
 
 ---
 
 ## 🔧 Current Focus
 
 <ul>
-  <li>Refactoring core systems for better modularity 🧱</li>
-  <li>Ensuring chat history features work as intended 🗃️</li>
+  <li>Moving to Postgres for DB control</li>
+  <li>Building the old chat history features but now for DB support</li>
 </ul>
 
 ---
@@ -57,9 +57,7 @@ After your PDA is devoured while cataloging new data entries, you’re left with
 When you boot it up, you’re met with nothing but a black screen — no sleek UI, no friendly voice, just a blinking cursor and one prompt:  
 > *Ask a question... or exit.*
 
-Can this outdated AI adapt to primitive tech?  
-Or will you abandon knowledge for convenience?  
-The choice... is yours.
+Will you sacriface your comfort for modern technology and adapt to this old tech or survive without any aid?
 
 ---
 
@@ -67,6 +65,6 @@ The choice... is yours.
 
 This README will be updated as development progresses. Stay tuned for new features, story expansions, and UI previews.
 
----
+**NOTE** ALL SUBNAUTICA INFORMATION CAME FROM THE GAME AND THE SUBNAUTICA WIKI.
 
-> 🧠 *"ALT may not have feelings... but it definitely has opinions."*
+---
