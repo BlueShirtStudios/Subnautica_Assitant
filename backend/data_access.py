@@ -3,23 +3,10 @@ from psycopg2 import ProgrammingError, IntegrityError, OperationalError, DataErr
 from datetime import datetime
 import bcrypt
 import binascii
+
+#Custom Imports
 from user_template import User
-
-#Query Templates
-ADD_NEW_USER = "INSERT INTO users (password, name, surname, email, createdAt, lastActive, username) VALUES (%s, %s, %s, %s, %s, %s, %s)"
-
-LOGIN_QUERY  = "SELECT userID, password, name FROM users WHERE username = %s"
-
-CREATE_CONVERSATION_QUERY = "INSERT INTO conversations (userID, startedAt, EndedAt) VALUES (%s, %s, %s) RETURNING conversationID"
-
-SAVE_MESSAGE_QUERY = "INSERT INTO messages (conversationID, role, content, sentAt) VALUES (%s, %s, %s, %s)"
-
-UPDATE_USER_LAST_ACTIVE = "UPDATE users SET lastActive WHERE userID = %s"
-
-GET_USER_CONVERSATIONS = "SELECT conversationID FROM conversations WHERE userID = %s AND conversationID =< %s AND conversations => %s"
-
-GET_RECENT_MESSAGES = "SELECT "
-               
+import queries as q
 class UserDataAccessor:
     def __init__(self):
         self.db = Database_Manager()
@@ -30,7 +17,7 @@ class UserDataAccessor:
             password = bcrypt.hashpw(password.encode(), bcrypt.gensalt())
             current_time = datetime.now()
             try:
-                db.cursor.execute(ADD_NEW_USER, (password, name, surname, email, current_time, current_time, username,))
+                db.cursor.execute(q.ADD_NEW_USER, (password, name, surname, email, current_time, current_time, username,))
                 db.connection.commit()
                 
             except ProgrammingError as e:
@@ -44,7 +31,7 @@ class UserDataAccessor:
     def login_user(self, username : str, password : str) -> User:
         with self.db as db:
             try:
-                db.cursor.execute(LOGIN_QUERY, (username,))
+                db.cursor.execute(q.LOGIN_QUERY, (username,))
                 record = db.cursor.fetchone()
                 
                 if not record:
@@ -72,7 +59,7 @@ class UserDataAccessor:
         currentTime = datetime.now()
         with self.db as db:
             try:
-                db.cursor.execute(CREATE_CONVERSATION_QUERY, (userID, currentTime, None,))
+                db.cursor.execute(q.CREATE_CONVERSATION_QUERY, (userID, currentTime, None,))
                 db.connection.commit()
                 conversation_id = db.cursor.fetchone()[0]
                 return conversation_id
@@ -91,7 +78,7 @@ class UserDataAccessor:
         with self.db as db:
             try:
             
-                db.cursor.execute(SAVE_MESSAGE_QUERY, (convoID, role, content, sentAt,))
+                db.cursor.execute(q.SAVE_MESSAGE_QUERY, (convoID, role, content, sentAt,))
                 db.connection.commit()
         
             except ProgrammingError as e:
@@ -106,7 +93,7 @@ class UserDataAccessor:
         currentTime = datetime.now()
         with self.db as db:
             try:
-                db.cursor.execute(UPDATE_USER_LAST_ACTIVE, (userID,))
+                db.cursor.execute(q.UPDATE_USER_LAST_ACTIVE, (currentTime, userID,))
                 db.connection.commit()
             
             except ProgrammingError as e:
@@ -117,11 +104,11 @@ class UserDataAccessor:
                 db.connection.rollback()
                 print(f"An error occured: {e}")
                 
-    def get_recent_conversations(self, userID : int, last_conversationID : int) -> list[int]:
+    def get_recent_conversationsIDs(self, userID : int) -> list[int]:
         with self.db as db:
             try:
-                db.cursor.execute(GET_USER_CONVERSATIONS, (userID, last_conversationID, last_conversationID - 5,))
-                records = db.connection.cursor.fetchall()
+                db.cursor.execute(q.GET_RECENT_USER_CONVERSATIONS, (userID,))
+                records = db.cursor.fetchall()
                 
                 #Convert Tupled Records to Single list
                 list_recent_convos = []
@@ -137,4 +124,40 @@ class UserDataAccessor:
             except Exception as e:
                 db.connection.rollback()
                 print(f"An error occured: {e}")
-        
+                
+    def get_recent_messages(self, list_convoIDs : list) -> dict:
+         with self.db as db:
+            try:
+                db.cursor.execute(q.GET_RECENT_USER_MESSAGES, (list_convoIDs,))
+                records = db.cursor.fetchall()
+                
+                #Check if memory building is needed
+                if records is None:
+                    return None
+                 
+                #Convert into useable dictionary
+                dict_conversations = {}
+                i = 0
+                for record in records:
+                    convo_id = list_convoIDs[i]
+
+                    if convo_id not in dict_conversations:
+                        dict_conversations[convo_id] = {
+                        "message_details": []
+                    }
+
+                    dict_conversations[convo_id]["message_details"].append({
+                        "messageID": record[0],
+                        "role": record[1],
+                        "content": record[2]
+                    })
+
+                return dict_conversations
+                     
+            except ProgrammingError as e:
+                db.connection.rollback()
+                print(f"A programming error occured: {e}")
+                        
+            except Exception as e:
+                db.connection.rollback()
+                print(f"An error occured: {e}")
