@@ -1,350 +1,182 @@
-import os
-import json
-import google.generativeai as genai
-import bot_tools
+from google import genai
+from google.genai import types
+from google.genai.errors import APIError, ClientError, ServerError
+from data_access import UserDataAccessor
+from user_template import User
+from llm_prompts import LLM_Prompts_Manager
 
-class AI_Agent():
-    def __init__(self, api : str, prompt : str, chat_history_file_path : str):
-        self.api = api
-        self.model = None
+ADA = UserDataAccessor() #Agent Data Accessor
+
+class Gemini_AI_Agent():
+    def __init__(self, configs : dict, user : User):
+        self.client = genai.Client()
+        self.model = self._get_available_model(self.client)
         self.chat_session = None
-        self.prompt = prompt
-        self.MAX_MEMORY_ENTRIES = 5
-        self.chat_history = []
-        self.chat_history_path = chat_history_file_path
-        self.assit_commands = Assit_Commands(self)
-        self.tools = None
-    
-    def _get_available_model(self):
+        self.custom_configs = self._create_config_object(configs)
+        self.prompts = LLM_Prompts_Manager()
+        self.user_instance = user
+        
+    def _get_available_model(self, client):
         available_model_name = None
-        preferred_prefixes = ['models/gemini-1.5-flash', 'models/gemini-1.5-pro', 'models/gemini-pro']
-    
-        #Store models that meet criteria to pick the best later
+        preferred_prefixes = ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-flash-latest']
+        
         found_suitable_models = []
-
-        for m in genai.list_models():
-            if 'generateContent' in m.supported_generation_methods:
+        for m in client.models.list():
+            model_name = m.name 
+            if 'generateContent' in m.supported_actions: 
                 for prefix in preferred_prefixes:
-                    if m.name.startswith(prefix):
+                    if model_name.startswith(f"models/{prefix}") or model_name == prefix:
                         found_suitable_models.append(m)
                         break
-
+    
         for prefix in preferred_prefixes:
             for m in found_suitable_models:
-                if m.name.startswith(prefix):
-                    available_model_name = m.name
+                model_name = m.name 
+                if model_name.startswith(f"models/{prefix}") or model_name == prefix:
+                    available_model_name = model_name
                     break 
             if available_model_name:
                 break
+         
+        if not available_model_name:
+            print("ERROR: Could not find a suitable model for content generation.")
+            exit() 
+           
+        return available_model_name
+                   
+    def _create_config_object(self, config_data: dict) -> types.GenerateContentConfig:
+        #System Instruction for Agent
+        system_instructions = config_data.get("system_prompt", None)
+        
+        generation_config = types.GenerateContentConfig(
+            system_instruction=system_instructions
+        )
 
-        if available_model_name:
-            return available_model_name
+        return generation_config
+    
+    def _save_conversation(self, user_content : str, agent_content : str):
+        ADA.add_new_message(self.user_instance.conversationID,
+                            user_content,
+                            "USER"        
+        )
         
-        else:
-            for m in genai.list_models():
-                if 'generateContent' in m.supported_generation_methods:
-                    print(f"- {m.name}")
-            exit()
+        ADA.add_new_message(self.user_instance.conversationID,
+                            agent_content,
+                            "AGENT"        
+        )
         
-    def intitalize_agent(self):
-        #Configure Agent
-        genai.configure(api_key=self.api)
-        self.model = genai.GenerativeModel(self._get_available_model(), system_instruction=self.prompt)
+    def _update_user_up_time(self):
+        ADA.update_user_active_time(self.user_instance.userID)
         
-        #Check if knowledge base can be reached + Get Tools File
-        data_path = os.path.join(os.path.dirname(__file__), "data", "subnautica_wiki.jsonl")
-        if os.path.exists(data_path):
-            self.tools = bot_tools.Tools(data_path)
-            
-        else:
-            return "Tools not found, Critical Error"
+    def _load_recent_chats(self, userID):
+        list_recent_convoID = []
+        list_recent_convoID = ADA.get_recent_conversationsIDs(userID)
+        self.user_instance.recent_memory = ADA.get_recent_messages(list_recent_convoID)
         
-        #Load past chats to memory
-        if os.path.exists(self.chat_history_path):
-            if os.stat(self.chat_history_path).st_size > 0:
-                self.assit_commands.handle_load_conversation(self.chat_history_path)
-                
-        else:
-            #Create history if file does not exists
-            self.chat_history_path = self.assit_commands.create_chat_history_file()
-        
-        #Establish Session
-        self.chat_session = self.model.start_chat(history=[])
-        
-    def restart_session(self):
-        self.chat_session = self.model.start_chat(history=[])
-        self.chat_history = []
-        self.assit_commands.deliver_Output("Chat has been restarted.")
-        
-    def save_short_term(self, combined_entry : dict):
-        if (len(self.chat_history) >= self.MAX_MEMORY_ENTRIES):
-            self.assit_commands.deliver_Output("Memory is full. Removing oldest conversation from short term memory.")
-            self.chat_history.pop(0)
-            self.chat_history.append(combined_entry)
-        
-        else:
-            self.chat_history.append(combined_entry)
-                     
-    def _handle_message(self, question : str):
-        user_message_object = {"role": "user", "parts": [{"text": question}]}
-        
-        #First look in short-term memory
-        if self.chat_history:
-            is_relevant = self.tools.scan_history(self.chat_history, question)
-            if is_relevant:
-                return is_relevant
-        
-        #Determine if tool is to be used
-        llm_tool_request_result = self.is_tool_needed(question)
-        if llm_tool_request_result != "NO_TOOL_NEEDED":
-            tool_call = self.call_desired_tool(llm_tool_request_result)
-            model_response_object = self.use_tool_for_response(tool_call, question)
-            
-        else:
-            model_response_object = self.chat_session.send_message(question)
-            
-        final_response = model_response_object.text     
-
-        #Save to short-term memory
-        combined_entry = self.tools.formatEntry(question, final_response)
-        self.save_short_term(combined_entry)
-        
-        #Save a summarized version of the chats
-        self.summarize_convos_save(combined_entry)
-            
-        #Return response 
-        return final_response
-            
-    def is_tool_needed(self, question : str):
-        tool_call_prompt = f"""
-        You are a tool-calling agent. Your job is to decide if a user's question requires a search
-        
-        User's question: "{question}"
-        
-        If the question requires searching the knowledge base, respond with a JSON object.
-        Example of your response: {{"tool_name": "search_by_keyword", "query": "KEYWORDS"}}.
-        
-        If the question can be answered without the search respond with "NO_TOOL_NEEDED".
-        
-        Your response must ONLY be the JSON string of "NO_TOOL_NEEDED".
-        Do not add any other text.
-        """
-        
-        llm_repsonse_text = self.chat_session.send_message(tool_call_prompt).text.strip()
-        
-        if llm_repsonse_text.upper() != "NO_TOOL_NEEDED":
-            return llm_repsonse_text
-        else:
-            return "NO_TOOL_NEEDED"
-                     
-    def call_desired_tool(self, llm_response_text):
-        #Clean llm respnse to see what tool is called
+    def initialize_agent_features(self, userID : int):
+        #Load and Prep all features for the agent
         try:
-            start_index = llm_response_text.find('{')
-            end_index = llm_response_text.rfind('}') + 1
-                
-            if start_index != -1 and end_index != -1:
-                json_string = llm_response_text[start_index:end_index]
-                tool_call = json.loads(json_string)
-                return tool_call
-                
-            else:
-                return "Error: Invalid tool call format from LLM."
-                
-        except json.JSONDecodeError:
-                return "Error: Could not parse LLM's tool call response."
-             
-    def use_tool_for_response(self, tool_call : str, question : str):  
-        #Extract details according to type of tool     
-        if tool_call.get("tool_name") == "search_by_keyword" and "query" in tool_call:
-            query = tool_call.get("query")
-                        
-            search_results = self.tools.search_by_keyword(query)
-                
-            search_result_prompt = f"""
-            You are a helpful assistant for the game Subnautica.
-            You have received the following information to answer the user's question.
-                                        
-            User's original question: {question}
-                                        
-            Search results:
-            {json.dumps(search_results, indent=2)}
-                                        
-            Based on this information, provide a detailed and helpful answer.
-                                
-            """
-            final_response = self.chat_session.send_message(search_result_prompt)
-            return final_response
-                        
-        else:
-            return "Error: LLM could not retrieve a valid JSON object."
-        
-        
-    def summarize_convos_save(self, entry):
-        #Send entry to summarize current questiona and answer as a summary
-        summarize_entry_prompt = f"""You are an agent that specilies in summarization. You need to summarize the follow content of the list 
-                                as one usefull summary so that other agents can use to assit them in querie. 
-                                
-                                Unsummirised Entry : {entry}
-                                
-                                Ensure that the summary is done perfect, keep any keywords that is present to ensure
-                                an accurate summary of the entry.
-                                """
-                                
-        summairized_entry = self.chat_session.send_message(summarize_entry_prompt).text
-        
-        #Save summary to long-term storage
-        self.assit_commands.handle_save_conversation(self.chat_history_path, summairized_entry)                     
-
-class Assit_Commands():
-    def __init__(self, agent_instance):
-        self.agent = agent_instance
-        self.commands = {
-                "exit" : self.handle_exit,
-                "help": self.handle_help,
-                "clear": self.handle_clear_terminal,
-                "ouput": self.deliver_Output,
-                "create": self.create_chat_history_file,
-                "load": self.handle_load_conversation,
-                "save": self.handle_save_conversation,
-                "new": self.handle_new_conversation,
-                "info": self.handle_info,
-                "view_chats": self.handle_view_history,
-                "clean_history": self.handle_clean_history
-        }
-        self.developer_reserved_command = ["output", 
-                                           "create", 
-                                           "load", 
-                                           "save"]
-        
-    def run_command(self, line : str):
-        #Clean line to get command
-        parts = line[1:].strip().split()
-        cmd = parts[0]
-        
-        #Check if command has arguments
-        if len(parts) > 1:
-            arg = parts[1:][0]
-            
-        else:
-            arg = None
-            
-        #Check if command is allowed to executed
-        if cmd in self.developer_reserved_command:
-            self.deliver_Output(f"Entered Commad: {cmd}, is a internal command only for development use.")
-            exit()
-        
-        #Execute Command
-        if cmd in self.commands:
-            self.commands[cmd](arg)
-        
-        else:
-            self.deliver_Output(f"Unknown Command Present: cmd - {cmd}")
-        
-    def handle_exit(self, args=None):
-        self.deliver_Output("Closing ALT. Safe travels survivior...")
-        exit()
-        
-    def handle_help(self, args=None):
-        #Used in development for easy access + adds transparency - Still need to fix
-        self.deliver_Output("Loading command dictionary...")
-        for cmd, info in self.commands_dict.items():
-            self.deliver_Output(f"- {cmd} : {info["description"]}")
-            
-    def handle_new_conversation(self, args=None):
-        self.agent.restart_session()
-        self.agent.chat_history.append("New Session Started.")
-        self.handle_clear_terminal()
-            
-    def handle_clear_terminal(self, args=None):
-        if os.name == 'nt':
-            os.system('cls')
-        else:
-            os.system('clear')
-            
-    def create_chat_history_file(self, args = None):
-        self.deliver_Output("File not found. Creating new history...")
-        relative_user_path = os.path.join(os.getcwd(), "user_data");
-        os.makedirs(relative_user_path, exist_ok=True)
-        chat_dir_path = os.path.join(relative_user_path, "chat_history.jsonl")
-        with open(chat_dir_path, "w") as f:
-            pass
-        
-        return chat_dir_path
-            
-    def handle_load_conversation(self, file_path : str, limit = 5):
-        #Check if the history file can be located
-        if not file_path:
-            self.deliver_Output("Please provide path to file or filename")
-            return        
-
-        #Load history to chat history
-        loaded_history = []
-        try:
-            with open(file_path, "r", encoding="utf-8") as file:
-                all_lines = file.readlines()           
-                reversed_lines = all_lines[::-1]
-                
-                lines_to_process = reversed_lines[::limit]
-                for lines in lines_to_process:
-                    if lines.strip():
-                        loaded_history.append(json.loads(lines))
-                    
-        except json.JSONDecodeError:
-            self.deliver_Output("Error: Failed to decode JSON.")
-            
-        except FileNotFoundError:
-            loaded_history = []
+            self._load_recent_chats(userID)
             
         except Exception as e:
-            self.deliver_Output(f"An error has occured during loading: {e}")
-            
-        self.agent.chat_history = loaded_history
-                    
-    def handle_save_conversation(self, file_path : str, line_to_save : str ):
-        if not file_path:
-            self.deliver_Output("Please provide path to file or filename")
-            return
+            print(f"UNFORSEEN ERROR occurred during feature initialization: {e}")
         
-        if not os.path.exists(file_path):
-            self.deliver_Output("Critical Error: History file not found.")
-            return
-        
-        saveable_line = {"summary": line_to_save}
-            
-        try:
-            json_line = json.dumps(saveable_line)
-            with open(file_path, "a", encoding="utf-8") as file:
-                file.flush()
-                file.write(json_line + "\n")
-                    
-        except Exception as e:
-                self.deliver_Output(f"An error has occured: {e}")
-            
-    def handle_info(self, args=None):
-        self.deliver_Output("Name: ALT")
-        self.deliver_Output("LLM Model: Gemini")
-        self.deliver_Output("Description: Assistant for User")
-        
-    def deliver_Output(self, output_phrase : str): #Potencial modes to come..
-        print(output_phrase)
-        
-    def handle_view_history(self, filepath : str, limit = 5):
-        self.deliver_Output("Presenting History From Most Recent Chats...")
-        self.deliver_Output("History will be loaded as a summary of conversations")
-        with open(filepath, "r", encoding="utf-8") as f:
-            all_lines = f.readlines()           
-            reversed_lines = all_lines[::-1]
-            lines_to_process = reversed_lines[::limit]
-            for line in lines_to_process:
-                try:
-                    entry = json.loads(line)
+    def _tokenize(text: str) -> set[str]:
+        #Elimates all unneeded words in history
+        set_tokens = set()
+        for word in text.split():
+            word = word.lower()
+            if len(word) > 2:
+                set_tokens.add(word)
                 
-                except json.JSONDecodeError:
+        return set_tokens
+    
+    def _preprocess_conversations(self):
+        #Checks if message was tokenized else will tokenize it
+        for convo in self.user_instance.recent_memory.values():
+            for msg in convo["message_details"]:
+                if msg["role"] == "USER":
+                    msg["tokens"] = self._tokenize(msg["content"])
+                
+    def _jaccard_similarity(a: set, b: set) -> float:
+        if not a or not b:
+            return 0.0
+        
+        return len(a & b) / len(a | b)
+    
+    def _find_similar_question(self, question: str, threshold: float = 0.5) -> float:
+        #Generate the question's tokens
+        q_tokens = self._tokenize(question)
+        
+        #Go through each message in a conversation
+        for convo in self.user_instance.recent_memory.values():
+            messages = convo.get("message_details", [])
+            
+            for i, msg in enumerate(messages):
+                if msg["role"] != "USER":
                     continue
-                  
-                summary = entry.get("summary", '')
-                self.deliver_Output(summary)
+                
+                tokens = msg["tokens"]
+                if tokens is None:
+                    continue
+                
+                score = self._jaccard_similarity(q_tokens, tokens)
+                if score >= threshold:
+                    #Get the reply the LLM gave
+                    if i > 0:
+                        prev_msg = messages[i - 1]
+                        return prev_msg
+    
+    def _read_through_short_memory(self, question : str) -> str:
+        if self.user_instance.recent_memory is None:
+            return None
         
-    def handle_clean_history(self, filepath):
-        open(filepath, "w").close()
+        try:
+            self._preprocess_conversations()
+            prev_message = self._find_similar_question(question)
+            
+            #Build Prompt for LLM
+            return self.prompts.found_in_recent_chats(question, prev_message)
+        
+        except Exception as e:
+            print(f"UNFORSEEN ERROR has occured during memory reading: {e}")
+    
+    def send_message(self, content : str) -> str:
+        #Create new session on first talks
+        if self.chat_session is None:
+            self.chat_session = self.client.chats.create(
+                model=self.model,
+                config=self.custom_configs
+                )
+            
+        #Seach recent conversations before LLm request
+        updated_content = self._read_through_short_memory(content)
+        if updated_content:
+            content = updated_content
+            
+        #Send Message to the llm
+        try:
+            response_object = self.chat_session.send_message(content)
+            
+            #Make db changes accordingly
+            try:
+                self._save_conversation(content, response_object.text)
+                self._update_user_up_time()
+                
+            except Exception as e:
+                print(f"UNEXPECTED ERROR occured during save process : {e}")
+                
+            #Return agent response even if db goes sideways
+            return response_object.text
+        
+        #Handle errors accordingly
+        except (ClientError, ServerError) as e:
+            print("\n" + "="*50)
+            print("CRITICAL API ERROR: Key/Quota Check Failed!")
+            print(f"Error Details: {e}")
+            print("This indicates an issue with your API key, region, or quota limits.")
+            print("="*50 + "\n")
+            exit()
+        except Exception as e:
+            print(f"\nUNEXPECTED ERROR while checking API status: {e}")
+            exit()         
