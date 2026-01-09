@@ -115,6 +115,7 @@ class UserDataAccessor:
                 for record in records:
                     list_recent_convos.append(record[0])
                     
+                print(list_recent_convos)
                 return list_recent_convos
             
             except ProgrammingError as e:
@@ -152,6 +153,7 @@ class UserDataAccessor:
                         "content": record[2]
                     })
 
+                print(dict_conversations)
                 return dict_conversations
                      
             except ProgrammingError as e:

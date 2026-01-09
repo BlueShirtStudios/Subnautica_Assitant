@@ -3,6 +3,7 @@ from google.genai import types
 from google.genai.errors import APIError, ClientError, ServerError
 from data_access import UserDataAccessor
 from user_template import User
+from llm_prompts import LLM_Prompts_Manager
 
 ADA = UserDataAccessor() #Agent Data Accessor
 
@@ -12,6 +13,7 @@ class Gemini_AI_Agent():
         self.model = self._get_available_model(self.client)
         self.chat_session = None
         self.custom_configs = self._create_config_object(configs)
+        self.prompts = LLM_Prompts_Manager()
         self.user_instance = user
         
     def _get_available_model(self, client):
@@ -91,9 +93,10 @@ class Gemini_AI_Agent():
     
     def _preprocess_conversations(self):
         #Checks if message was tokenized else will tokenize it
-        for msg in self.user_instance.recent_memory["message_details"]:
-            if msg["role"] == "USER":
-                msg["tokens"] = self._tokenize(msg["content"])
+        for convo in self.user_instance.recent_memory.values():
+            for msg in convo["message_details"]:
+                if msg["role"] == "USER":
+                    msg["tokens"] = self._tokenize(msg["content"])
                 
     def _jaccard_similarity(a: set, b: set) -> float:
         if not a or not b:
@@ -102,26 +105,42 @@ class Gemini_AI_Agent():
         return len(a & b) / len(a | b)
     
     def _find_similar_question(self, question: str, threshold: float = 0.5) -> float:
+        #Generate the question's tokens
         q_tokens = self._tokenize(question)
         
-        for msg in self.user_instance.recent_memory["message_details"]:
-            if msg["role"] != "USER":
-                continue
+        #Go through each message in a conversation
+        for convo in self.user_instance.recent_memory.values():
+            messages = convo.get("message_details", [])
             
-            score = self._jaccard_similarity(q_tokens, msg["tokens"])
-            if score >= threshold:
-                return msg, score
+            for i, msg in enumerate(messages):
+                if msg["role"] != "USER":
+                    continue
+                
+                tokens = msg["tokens"]
+                if tokens is None:
+                    continue
+                
+                score = self._jaccard_similarity(q_tokens, tokens)
+                if score >= threshold:
+                    #Get the reply the LLM gave
+                    if i > 0:
+                        prev_msg = messages[i - 1]
+                        return prev_msg
     
     def _read_through_short_memory(self, question : str) -> str:
-        """
-        This function does not work right now, my dictionary structure is not consitent - Will
-        fix later or next coding session, trust 
-        """
-        self._preprocess_conversations()
-        matched_user_msg, score = self._find_similar_question(question)
+        if self.user_instance.recent_memory is None:
+            return None
         
-        messages = self.user_instance.recent_memory["message_details"]
-
+        try:
+            self._preprocess_conversations()
+            prev_message = self._find_similar_question(question)
+            
+            #Build Prompt for LLM
+            return self.prompts.found_in_recent_chats(question, prev_message)
+        
+        except Exception as e:
+            print(f"UNFORSEEN ERROR has occured during memory reading: {e}")
+    
     def send_message(self, content : str) -> str:
         #Create new session on first talks
         if self.chat_session is None:
@@ -129,10 +148,13 @@ class Gemini_AI_Agent():
                 model=self.model,
                 config=self.custom_configs
                 )
+            
         #Seach recent conversations before LLm request
-        self._read_through_short_memory(content)
-
-        #Send Message to the agent
+        updated_content = self._read_through_short_memory(content)
+        if updated_content:
+            content = updated_content
+            
+        #Send Message to the llm
         try:
             response_object = self.chat_session.send_message(content)
             
@@ -158,6 +180,3 @@ class Gemini_AI_Agent():
         except Exception as e:
             print(f"\nUNEXPECTED ERROR while checking API status: {e}")
             exit()         
-        
-        
-        
