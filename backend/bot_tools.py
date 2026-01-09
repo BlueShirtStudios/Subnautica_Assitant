@@ -2,7 +2,6 @@ import json
 import os
 import re
 from collections import defaultdict
-import requests
 
 class Tools:
     def __init__(self, file_path : str ):
