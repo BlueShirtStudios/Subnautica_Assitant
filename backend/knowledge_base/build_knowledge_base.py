@@ -1,27 +1,8 @@
 import requests
 import json
 import time
-import logging
-from tqdm import tqdm
+from log_actions import Logger
 
-class Logger:
-    def __init__(self, log_file : str):
-        self.log_file = log_file
-        self.log_format = "%(asctime)s [%(levelname)s] %(message)s"
-        
-    def initialize_logger(self):
-        logging.basicConfig(
-            filename=self.log_file,
-            level=logging.INFO,
-            format=self.log_format
-        )
-        logging.info("Starting Crawl...")
-    
-    def log_dump(self, pageid : int, title : str):
-        logging.info(f"Dumped page {pageid}: {title}")
-        
-    def log_error(self, pageid : int, e : str):
-        logging.info(f"Error fetching sections for page {pageid}: {e}")
 class Crawler:
     def __init__(self, api : str, output_path : str, params = dict):
         self.api = api
@@ -68,10 +49,9 @@ class Crawler:
             print(f"Error with fetching sections for page: {page_id}: {e}")
                
     def crawl(self, delay=0.5):
-        self.logger.initialize_logger()
+        self.logger.initialize_logger("Started Crawl...")
         
         with open(self.output_path, "a", encoding='utf-8') as file:
-            progress_bar = tqdm(total=None, desc="Crawling Pages")
             while True:
                 res = self.session.get(
                         self.api, 
@@ -102,7 +82,7 @@ class Crawler:
                         file.write(json.dumps(record, ensure_ascii=False) + "\n")
                         file.flush()
                         self.increment_pages_written()
-                        progress_bar.update(1)
+                        self.logger.progress_bar.update(1)
                         self.logger.log_dump(page_id, record["title"] )
                     except Exception as e:
                         self.logger.log_error(page_id, e)

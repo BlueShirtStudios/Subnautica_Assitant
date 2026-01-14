@@ -1,18 +1,20 @@
 from google import genai
 from google.genai import types
 from google.genai.errors import APIError, ClientError, ServerError
-from data_access import UserDataAccessor
-from user_template import User
-from llm_prompts import LLM_Prompts_Manager
 
-ADA = UserDataAccessor() #Agent Data Accessor
+#Custom Imports
+from db_tools.data_access import UserDataAccessor
+from user_template import User
+from llm_assitant.llm_prompts import LLM_Prompts_Manager
+from llm_assitant.llm_config import LLM_CONFIGS
 
 class Gemini_AI_Agent():
-    def __init__(self, configs : dict, user : User):
+    def __init__(self, user : User):
         self.client = genai.Client()
         self.model = self._get_available_model(self.client)
         self.chat_session = None
-        self.custom_configs = self._create_config_object(configs)
+        self.ADA = UserDataAccessor()
+        self.custom_configs = self._create_config_object(LLM_CONFIGS)
         self.prompts = LLM_Prompts_Manager()
         self.user_instance = user
         
@@ -55,23 +57,23 @@ class Gemini_AI_Agent():
         return generation_config
     
     def _save_conversation(self, user_content : str, agent_content : str):
-        ADA.add_new_message(self.user_instance.conversationID,
+        self.ADA.add_new_message(self.user_instance.conversationID,
                             user_content,
                             "USER"        
         )
         
-        ADA.add_new_message(self.user_instance.conversationID,
+        self.ADA.add_new_message(self.user_instance.conversationID,
                             agent_content,
                             "AGENT"        
         )
         
     def _update_user_up_time(self):
-        ADA.update_user_active_time(self.user_instance.userID)
+        self.ADA.update_user_active_time(self.user_instance.userID)
         
     def _load_recent_chats(self, userID):
         list_recent_convoID = []
-        list_recent_convoID = ADA.get_recent_conversationsIDs(userID)
-        self.user_instance.recent_memory = ADA.get_recent_messages(list_recent_convoID)
+        list_recent_convoID = self.ADA.get_recent_conversationsIDs(userID)
+        self.user_instance.recent_memory = self.ADA.get_recent_messages(list_recent_convoID)
         
     def initialize_agent_features(self, userID : int):
         #Load and Prep all features for the agent

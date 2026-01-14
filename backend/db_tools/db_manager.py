@@ -1,7 +1,6 @@
 import psycopg2
 from psycopg2 import Error
-
-from db_secrect import ALT_user_db
+from db_tools.db_secret import ALT_user_db
 
 class Database_Manager:
     def __init__(self):

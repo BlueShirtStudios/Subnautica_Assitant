@@ -1,7 +1,6 @@
-from llm_config import LLM_CONFIGS
 import input_handler as iph
-from data_access import UserDataAccessor
-from ai_assitant import Gemini_AI_Agent
+from db_tools.data_access import UserDataAccessor
+from llm_assitant.ai_assitant import Gemini_AI_Agent
 from user_template import User
 
 #Intialize Instances for run
@@ -9,7 +8,7 @@ UDA = UserDataAccessor()
 
 #This is where the implentation of the agent lies  
 def boot_emergency_systems(user_instance : User) -> str:
-    ALT = Gemini_AI_Agent(LLM_CONFIGS, user_instance)
+    ALT = Gemini_AI_Agent(user_instance)
     ALT.initialize_agent_features(user_instance.userID)
     UDA.update_user_active_time(user_instance.userID)
 

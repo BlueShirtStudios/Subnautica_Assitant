@@ -1,4 +1,4 @@
-from db_manager import Database_Manager
+from db_tools.db_manager import Database_Manager
 from psycopg2 import ProgrammingError, IntegrityError, OperationalError, DataError, DatabaseError
 from datetime import datetime
 import bcrypt
@@ -6,7 +6,7 @@ import binascii
 
 #Custom Imports
 from user_template import User
-import queries as q
+import db_tools.queries as q
 class UserDataAccessor:
     def __init__(self):
         self.db = Database_Manager()
