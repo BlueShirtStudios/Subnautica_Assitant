@@ -41,8 +41,8 @@ ALT serves as a theme for the project, but main attraction is build a moduler fr
 ## 🔧 Current Focus
 
 <ul>
-  <li>Moving to Postgres for DB control</li>
-  <li>Building the old chat history features but now for DB support</li>
+  <li>Building tools for LLM to utilize</li>
+  <li>Making sure everything works together as a unit</li>
 </ul>
 
 ---
