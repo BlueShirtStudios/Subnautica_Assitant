@@ -13,5 +13,5 @@ venv/
 backend/data/
 data/logs/
 
-# Specific Config Files
+#Specific Config Files
 **/db_secret.py
