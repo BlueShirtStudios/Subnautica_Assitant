@@ -12,12 +12,10 @@ knowledge_base/__pycache__
 
 #Data file created in code
 backend/data
-user_data
 
 #Log files
-date/
 data/logs/crawler.log
 data/logs/add_wiki_to_db
 
 #Config Files
-backend/db_tools/db_secrect.py
+backend/db_tools/db_secret.py
