@@ -1,21 +1,17 @@
-#Backend
-__pycache__/
+#Python stuff
+**/__pycache__/
 env/
 venv/
-knowledge_base/__pycache__
 
-#Project Specifics 
+#Environment variables
 .env
 
-#IDE Specifics
-.vscode
+#IDE
+.vscode/
 
-#Data file created in code
-backend/data
+#Data and Logs
+backend/data/
+data/logs/
 
-#Log files
-data/logs/crawler.log
-data/logs/add_wiki_to_db
-
-#Config Files
-backend/db_tools/db_secret.py
+# Specific Config Files
+**/db_secret.py
