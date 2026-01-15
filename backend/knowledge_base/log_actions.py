@@ -20,20 +20,20 @@ class Logger:
         self.progress_bar.update(1)
         
     def log_error_page(self, pageid : int, e : str):
-        logging.info(f"Error fetching sections for page {pageid}: {e}")
+        logging.error(f"Error fetching sections for page {pageid}: {e}")
         
     def log_db_insert(self, file_line : int, title : str, table_name):
         logging.info(f"Inserted Fields of Line {file_line}: {title} into {table_name}")
         
     def log_db_error_insert(self, file_line : int, e : str):
-        logging.info(f"Error inserting line {file_line}: {e}")
+        logging.error(f"Error inserting line {file_line}: {e}")
         
     def finish_log(self, finsh_message : str, total_lines_added):
         logging.info(f"{finsh_message}, {total_lines_added}")
         print(f"{finsh_message}, {total_lines_added}") 
         
     def log_json_error(self, page_id : int, line : int, e : str):
-        logging.info(f"AN JSON error Occurred During Writing on Page {page_id}, File Line {line}: {e}")
+        logging.error(f"AN JSON error Occurred During Writing on Page {page_id}, File Line {line}: {e}")
         
     def log_unexpected_error(self, e : str):
-        logging.info(f"An unexpected error occured: {e}")
+        logging.error(f"An unexpected error occured: {e}")

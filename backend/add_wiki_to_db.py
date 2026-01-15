@@ -1,4 +1,5 @@
 import json
+import time
 from pathlib import Path
 from db_tools.db_manager import Database_Manager
 from knowledge_base.log_actions import Logger
@@ -59,78 +60,77 @@ def insert_lines_into_db(data_path: Path):
         log_path = new_log_file
         
     logger = Logger(log_path, "Started Moving File to Database...")
+    logger.initialize_logger("Started Migratations Process...")
 
     db_manager = Database_Manager()
-    db_manager.connect_to_db()
 
     total_records_added = 0
     pages_processed = 0
 
     try:
-        with open(data_path, "r", encoding="utf-8") as f:
-            for raw_line in f:
-                line = json.loads(raw_line)
-
-                page_id = clean(line.get("pageid"))
-                title = clean(line.get("title"))
-                fullurl = clean(line.get("fullurl"))
-                extract = clean(line.get("extract"))
-                thumbnail = clean(line.get("thumbnail"))
-
-                try:
-                    with db_manager as db:
-                        #Insert page
+        with db_manager as db:
+            with open(data_path, "r", encoding="utf-8") as f:
+                for raw_line in f:
+                    try:
+                        #Load each line and extract its info
+                        line = json.loads(raw_line)
+                        page_id = clean(line.get("pageid"))
+                        title = clean(line.get("title"))
+                        fullurl = clean(line.get("fullurl"))
+                        extract = clean(line.get("extract"))
+                        thumbnail = clean(line.get("thumbnail"))
+                        
+                        #Add to info to pages table
                         db.cursor.execute(
-                            INSERT_INTO_PAGES,
-                            (page_id, title, fullurl, extract, thumbnail)
-                        )
-
-                        #Insert categories
+                        INSERT_INTO_PAGES,
+                        (page_id, title, fullurl, extract, thumbnail))
+                        
+                        #Add info to category table
                         categories = line.get("category") or []
                         for category in categories:
+                            category = clean(category)
                             db.cursor.execute(
                                 INSERT_INTO_CATEGORIES,
-                                (page_id, clean(category))
-                            )
-
-                        #Insert sections
+                                (page_id, category))
+                            
+                            
+                        #Add information to sections table
                         sections = line.get("sections") or []
                         for section in sections:
                             db.cursor.execute(
-                                INSERT_INTO_SECTIONS,
-                                (
-                                    page_id,
-                                    clean(section.get("toclevel")),
-                                    clean(section.get("level")),
-                                    clean(section.get("line")),
-                                    clean(section.get("number")),
-                                    clean(section.get("index_number")),
-                                    clean(section.get("fromtitle")),
-                                    clean(section.get("byteoffset")),
-                                    clean(section.get("anchor")),
-                                    clean(section.get("linkanchor")),
-                                )
-                            )
-
+                                INSERT_INTO_SECTIONS, (
+                                page_id,
+                                clean(section.get("toclevel")),
+                                clean(section.get("level")),
+                                clean(section.get("line")),
+                                clean(section.get("number")),
+                                clean(section.get("index_number")),
+                                clean(section.get("fromtitle")),
+                                clean(section.get("byteoffset")),
+                                clean(section.get("anchor")),
+                                clean(section.get("linkanchor")),
+                                ))
+                            
+                        #Commit changes to db
                         db.connection.commit()
+                        
+                        #Update log informations
+                        pages_processed += 1
+                        total_records_added += 1
+                        logger.log_db_insert(pages_processed, title, "page")
+                        logger.progress_bar.update(1)
+                        time.sleep(0.25)
 
-                    pages_processed += 1
-                    total_records_added += 1
-                    logger.log_db_insert(pages_processed, title, "page")
-
-                except Exception as e:
-                    db_manager.connection.rollback()
-                    logger.log_db_error_insert(pages_processed, e)
-
-                logger.progress_bar.update(1)
-
-        logger.finish_log(
-            "Finished adding wiki data to database",
-            total_records_added
-        )
-
+                    except Exception as e:
+                        db_manager.connection.rollback()
+                        logger.log_db_error_insert(pages_processed, e)
+                        
+                #Display when transfer is complete + log it
+                logger.finish_log("Finished adding wiki data to database", total_records_added)
+                print("Migration to db is done.")
+    
     except json.JSONDecodeError as e:
-        logger.log_json_error(page_id, pages_processed, e)
+        logger.log_json_error(page_id, pages_processed, e) 
 
     except Exception as e:
         logger.log_unexpected_error(e)
