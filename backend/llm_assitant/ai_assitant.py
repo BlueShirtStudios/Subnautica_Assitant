@@ -7,6 +7,7 @@ from db_tools.data_access import UserDataAccessor
 from user_template import User
 from llm_assitant.llm_prompts import LLM_Prompts_Manager
 from llm_assitant.llm_config import LLM_CONFIGS
+from llm_assitant.lmm_tools import LLM_Tools
 
 class Gemini_AI_Agent():
     def __init__(self, user : User):
@@ -16,6 +17,7 @@ class Gemini_AI_Agent():
         self.ADA = UserDataAccessor()
         self.custom_configs = self._create_config_object(LLM_CONFIGS)
         self.prompts = LLM_Prompts_Manager()
+        self.tools = LLM_Tools()
         self.user_instance = user
         
     def _get_available_model(self, client):
@@ -83,7 +85,7 @@ class Gemini_AI_Agent():
         except Exception as e:
             print(f"UNFORSEEN ERROR occurred during feature initialization: {e}")
         
-    def _tokenize(text: str) -> set[str]:
+    def _tokenize(self, text: str) -> set[str]:
         #Elimates all unneeded words in history
         set_tokens = set()
         for word in text.split():
@@ -142,9 +144,21 @@ class Gemini_AI_Agent():
         
         except Exception as e:
             print(f"UNFORSEEN ERROR has occured during memory reading: {e}")
-    
+            
+    def _use_rag_sys(self, question : str) -> str:
+        try:
+            #Let the llm make a tool call
+            tool_call = self.chat_session.send_message(self.prompts.determine_tool_call(question))
+            self.tools.update_tools_status(question, tool_call)
+            
+            #Use the tool to get info + build prompt
+            return self.prompts.info_on_question_found(self.tools.use_tool())
+        
+        except Exception as e:
+            print(f"An error occured: {e}")
+        
     def send_message(self, content : str) -> str:
-        #Create new session on first talks
+        #Create new session on first talk
         if self.chat_session is None:
             self.chat_session = self.client.chats.create(
                 model=self.model,
@@ -155,7 +169,11 @@ class Gemini_AI_Agent():
         updated_content = self._read_through_short_memory(content)
         if updated_content:
             content = updated_content
-            
+        else:      
+            improved_prompt = self._use_rag_sys(content) #variable swap is up for dicussion
+            if improved_prompt:
+                content = improved_prompt
+        
         #Send Message to the llm
         try:
             response_object = self.chat_session.send_message(content)

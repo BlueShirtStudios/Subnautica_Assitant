@@ -47,4 +47,9 @@ GET_RECENT_USER_MESSAGES = """
                     ORDER BY conversationID DESC, sentAt DESC
                     LIMIT 6
                     """
-               
+                    
+SEARCH_FOR_SIMILER_TITLE_PAGE ="""
+                    SELECT * 
+                    FROM pages
+                    WHERE title = ANY(%s)
+                    """

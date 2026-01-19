@@ -68,5 +68,7 @@ def determine_action(user_option : int):
            
             
 if __name__ == "__main__":
+    print("Packages/Modules successfully loaded.")
+    print("-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=")
     user_option = iph.get_user_selection()
     determine_action(user_option)

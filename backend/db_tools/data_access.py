@@ -163,3 +163,24 @@ class UserDataAccessor:
             except Exception as e:
                 db.connection.rollback()
                 print(f"An error occured: {e}")
+                
+                
+    def search_for_similer_title(self, word_set : set) -> tuple:
+        with self.db as db:
+            try:
+                self.db.cursor.execute(q.SEARCH_FOR_SIMILER_TITLE_PAGE, (word_set,))
+                records = self.db.cursor.fetchall
+
+                if records is None:
+                    return None
+                
+                return records
+                
+            
+            except ProgrammingError as e:
+                db.connection.rollback()
+                print(f"A programming error occured: {e}")
+                        
+            except Exception as e:
+                db.connection.rollback()
+                print(f"An error occured: {e}")
