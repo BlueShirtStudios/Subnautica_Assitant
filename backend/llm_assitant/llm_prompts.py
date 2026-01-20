@@ -3,7 +3,7 @@ class LLM_Prompts_Manager:
         pass
     
     def found_in_recent_chats(self, question : str, prev_llm_response : str) -> str:
-        if question or prev_llm_response is None:
+        if question is None or prev_llm_response is None:
             return None
         
         return f"""
@@ -27,7 +27,7 @@ class LLM_Prompts_Manager:
         """
         
     def determine_tool_call(self, question : str) -> str:
-        if question in None:
+        if question is None:
             return None
         
         return f"""
@@ -47,18 +47,24 @@ class LLM_Prompts_Manager:
                     Question: How is your day?
                     Respond: NO_TOOL
                     
-                    -For any factual questions, respond with with tool you want to call, for example:
+                    -For any factual questions, respond with with a search tool you want to call, for example:
                     Question: What are animals found in subnautica?
                     Respond: SEARCH_BY_KEYWORD
                     
                     Question: How to craft a seamoth?
                     Respond: SEARCH_BY_KEYWORD
+                    
+                    -If a topic needs to be expanded on or you decide you need more information:
+                    Question: What are features of a ghost leviathan?
+                    Respond: IN_DEPTH_SEARCH
+                    
+                    Question: Where can I find materials for a seamoth?
+                    Respond: IN_DEPTH_SEARCH
     
-        """
-        
+            """
         
     def info_on_question_found(self, question : str, found_info : str) -> str:
-        if question in None:
+        if not question:
             return None
         
         return f"""
@@ -69,8 +75,10 @@ class LLM_Prompts_Manager:
             Found Results: {found_info}
             
             Instructions:
-            1. Look at the question.
-            2. Look at the provided results.
-            3. Combine both and deliver a robust reponse that answers the correctly. 
-    
-        """
+
+            - Carefully read the question.
+            - Analyze the retrieved information.
+            - Use ONLY the provided information to answer the question.
+            - If the information does not fully answer the question, state what is missing.
+            - Respond clearly, concisely, and accurately.
+            """

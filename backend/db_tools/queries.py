@@ -53,3 +53,17 @@ SEARCH_FOR_SIMILER_TITLE_PAGE ="""
                     FROM pages
                     WHERE title = ANY(%s)
                     """
+                    
+SEARCH_FOR_PAGE_CATEGORIES = """
+                    SELECT pageid, categories
+                    FROM categories
+                    WHERE pageid = ANY(%s)
+                    LIMIT 10
+                    """
+                    
+SEARCH_FOR_PAGE_SECTIONS = """
+                    SELECT pageid, toclevel, level, line, fromtitle, anchor, linkanchor
+                    FROM sections
+                    WHERE pageid = ANY(%s)
+                    LIMIT 10
+                    """

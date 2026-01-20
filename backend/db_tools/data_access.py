@@ -115,7 +115,6 @@ class UserDataAccessor:
                 for record in records:
                     list_recent_convos.append(record[0])
                     
-                print(list_recent_convos)
                 return list_recent_convos
             
             except ProgrammingError as e:
@@ -153,7 +152,6 @@ class UserDataAccessor:
                         "content": record[2]
                     })
 
-                print(dict_conversations)
                 return dict_conversations
                      
             except ProgrammingError as e:
@@ -169,7 +167,7 @@ class UserDataAccessor:
         with self.db as db:
             try:
                 self.db.cursor.execute(q.SEARCH_FOR_SIMILER_TITLE_PAGE, (word_set,))
-                records = self.db.cursor.fetchall
+                records = self.db.cursor.fetchall()
 
                 if records is None:
                     return None
@@ -184,3 +182,39 @@ class UserDataAccessor:
             except Exception as e:
                 db.connection.rollback()
                 print(f"An error occured: {e}")
+                
+    def get_page_categories(self, pageID):
+        with self.db as db:
+            try:
+                self.db.cursor.execute(q.SEARCH_FOR_PAGE_CATEGORIES, (pageID,))
+                records = self.db.cursor.fetchall()
+                if records is None:
+                    return 
+                
+                return records
+            
+            except ProgrammingError as e:
+                db.connection.rollback()
+                print(f"A programming error occured: {e}")
+                        
+            except Exception as e:
+                db.connection.rollback()
+                print(f"An error occured: {e}")
+            
+    def get_page_sections(self, pageID):
+            with self.db as db:
+                try:
+                    self.db.cursor.execute(q.SEARCH_FOR_PAGE_SECTIONS, (pageID,))
+                    records = self.db.cursor.fetchall()
+                    if records is None:
+                        return 
+                    
+                    return records
+                
+                except ProgrammingError as e:
+                    db.connection.rollback()
+                    print(f"A programming error occured: {e}")
+                            
+                except Exception as e:
+                    db.connection.rollback()
+                    print(f"An error occured: {e}")

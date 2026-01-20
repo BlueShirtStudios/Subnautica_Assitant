@@ -17,7 +17,7 @@ def boot_emergency_systems(user_instance : User) -> str:
     #Run ALT
     while (run):
         user_question = input("What is you question? ").strip()
-        response = ALT.send_message(user_question)
+        response = ALT.send_message(user_question )
         print(response)
         
 def exit_app():

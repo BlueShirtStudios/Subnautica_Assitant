@@ -102,7 +102,7 @@ class Gemini_AI_Agent():
                 if msg["role"] == "USER":
                     msg["tokens"] = self._tokenize(msg["content"])
                 
-    def _jaccard_similarity(a: set, b: set) -> float:
+    def _jaccard_similarity(self, a: set, b: set) -> float:
         if not a or not b:
             return 0.0
         
@@ -129,7 +129,7 @@ class Gemini_AI_Agent():
                     #Get the reply the LLM gave
                     if i > 0:
                         prev_msg = messages[i - 1]
-                        return prev_msg
+                        return prev_msg, score
     
     def _read_through_short_memory(self, question : str) -> str:
         if self.user_instance.recent_memory is None:
@@ -148,16 +148,44 @@ class Gemini_AI_Agent():
     def _use_rag_sys(self, question : str) -> str:
         try:
             #Let the llm make a tool call
-            tool_call = self.chat_session.send_message(self.prompts.determine_tool_call(question))
-            self.tools.update_tools_status(question, tool_call)
+            determined_tool = self.prompts.determine_tool_call(question)
             
-            #Use the tool to get info + build prompt
-            return self.prompts.info_on_question_found(self.tools.use_tool())
+            try:
+                tool_call_response_object = self.chat_session.send_message(determined_tool)
+                
+            except (ClientError, ServerError) as e:
+                print("\n" + "="*50)
+                print("CRITICAL API ERROR: Key/Quota Check Failed!")
+                print(f"Error Details: {e}")
+                print("This indicates an issue with your API key, region, or quota limits.")
+                print("="*50 + "\n")
+                exit()
+            except Exception as e:
+                print(f"\nUNEXPECTED ERROR occured: {e}")
+                exit()
+                    
+            try:
+                self.tools.update_tools_status(question, tool_call_response_object.text)
+                
+                #Use the tool to get info + build prompt
+                self.tools.use_tool()
+                retrieved_info = self.tools.fetch_results()
+                
+            except Exception as e:
+                print(f"An error occureed during tool calling: {e}")
+                retrieved_info = None
+            
+            #Check if information is retreived.
+            if retrieved_info is None:
+                return None
+            
+            else:
+                return self.prompts.info_on_question_found(retrieved_info)
         
         except Exception as e:
             print(f"An error occured: {e}")
         
-    def send_message(self, content : str) -> str:
+    def send_message(self, main_content : str) -> str:
         #Create new session on first talk
         if self.chat_session is None:
             self.chat_session = self.client.chats.create(
@@ -166,21 +194,23 @@ class Gemini_AI_Agent():
                 )
             
         #Seach recent conversations before LLm request
-        updated_content = self._read_through_short_memory(content)
-        if updated_content:
-            content = updated_content
+        retrieved_content = self._read_through_short_memory(main_content)
+        if retrieved_content:
+            content = retrieved_content
+            
         else:      
-            improved_prompt = self._use_rag_sys(content) #variable swap is up for dicussion
+            #Will use tools to answer the question
+            improved_prompt = self._use_rag_sys(main_content) #variable swap is up for dicussion
             if improved_prompt:
-                content = improved_prompt
+                main_content = improved_prompt
         
         #Send Message to the llm
         try:
-            response_object = self.chat_session.send_message(content)
+            response_object = self.chat_session.send_message(main_content)
             
             #Make db changes accordingly
             try:
-                self._save_conversation(content, response_object.text)
+                self._save_conversation(main_content, response_object.text)
                 self._update_user_up_time()
                 
             except Exception as e:
