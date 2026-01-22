@@ -111,6 +111,9 @@ class UserDataAccessor:
                 records = db.cursor.fetchall()
                 
                 #Convert Tupled Records to Single list
+                if records is None:
+                    return None
+                
                 list_recent_convos = []
                 for record in records:
                     list_recent_convos.append(record[0])
@@ -151,6 +154,7 @@ class UserDataAccessor:
                         "role": record[1],
                         "content": record[2]
                     })
+                    i += 1
 
                 return dict_conversations
                      

@@ -82,3 +82,63 @@ class LLM_Prompts_Manager:
             - If the information does not fully answer the question, state what is missing.
             - Respond clearly, concisely, and accurately.
             """
+            
+    def understand_knowledge_base(self) -> str:
+        return"""
+            This is how the knowledge base database looks. It consists of 3 tables:
+            
+            Table 1: pages
+            Desc: This contains a page main info.
+            Fields:
+                - pageid : A unipue ID for the page were we found the info.
+                - title : The page title.
+                - fullurl : URL for the page.
+                - extract : Contain little or None information about the page.
+                - thumbnail : Picture from the webpage.
+                
+            Table 2: categories
+            Desc: This contains each category of a page.
+            Fields:
+                - id : Ignore.
+                - pageid : A unipue ID for the page were we found the info, linking back to table 1 (pages).
+                - categoriers : A list of each category where the page falls under.
+                
+            Table 3: sections
+            Desc: Contains each section of a page
+            Fields:
+                - id : Ignore.
+                - pageid : A unipue ID for the page were we found the info, linking back to table 1 (pages).
+                - toclevel : Depth in the table of content (use this to understand hierachy of information).
+                - level : The level of html heading.
+                - line : The display title of the section.
+                - number : Hieracrhical Section Number (use this to understand hierachy of information).
+                - index_number : Ignore
+                - fromtitle : Title of parent page.
+                - byteoffset INTEGER,
+                - anchor : Slug of the URL used to jump to that section.
+                - linkAnchor : Slug of the URL used to jump to that section.
+
+        """
+        
+        
+    def summarize_current_message(msg_list : list) -> str:
+        if msg_list is None:
+            return None
+        
+        return f"""
+            Summarize this interaction using the information provided:
+            
+            {msg_list}
+        
+            """
+            
+    def need_context(sum_msgs : str) -> str:
+        if sum_msgs is None:
+            return None
+        
+        return f"""
+            To ensure the conversation stays on topic and accruate responses are given, we are
+            refreshing your context. This is the last 10 messages between you and the user summarized.
+            
+            Summarized Version: {sum_msgs}
+        """

@@ -1,3 +1,4 @@
+# Custom Imports
 from db_tools.data_access import UserDataAccessor
 
 class LLM_Tools:
@@ -11,6 +12,9 @@ class LLM_Tools:
         self.given_query = new_query
         self.tool_call = called_tool
         
+    def fetch_results(self):
+        return self.result_dict or None
+        
     def _tuple_to_dict(self, result_to_format : list) -> dict:
         FIELDS = ["pageid", "title", "fullurl", "extract", "thumbnail"]
 
@@ -22,7 +26,7 @@ class LLM_Tools:
 
         return formatted
             
-    def _clean_input(self, input_str : str) -> set:
+    def _clean_input_to_keywords(self, input_str : str) -> set:
         set_clean_input =  set()
         for word in input_str.strip().split():
             if len(word) > 3:
@@ -39,9 +43,6 @@ class LLM_Tools:
         #Queries DB for results
         found_results = self._TDA.search_for_similer_title(list(keywords))
         self.result_dict = self._tuple_to_dict(found_results)
-        
-    def fetch_results(self):
-        return self.result_dict or None
         
     def _extract_page_ids(self) -> set:
         page_ids = set()
@@ -86,7 +87,7 @@ class LLM_Tools:
             
         except Exception as e:
             print(f"An error occurred: {e}")
-        
+
     def use_tool(self):
         #Determine the tool called
         if self.tool_call == "SEARCH_BY_KEYWORD":

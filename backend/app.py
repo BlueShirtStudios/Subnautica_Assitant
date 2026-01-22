@@ -9,15 +9,15 @@ UDA = UserDataAccessor()
 #This is where the implentation of the agent lies  
 def boot_emergency_systems(user_instance : User) -> str:
     ALT = Gemini_AI_Agent(user_instance)
-    ALT.initialize_agent_features(user_instance.userID)
+    ALT.initialize_agent()
     UDA.update_user_active_time(user_instance.userID)
-
+        
     run = True
 
     #Run ALT
     while (run):
         user_question = input("What is you question? ").strip()
-        response = ALT.send_message(user_question )
+        response = ALT.start_chatting(user_question )
         print(response)
         
 def exit_app():
@@ -62,6 +62,7 @@ def determine_action(user_option : int):
     
         case 2: 
             login_account()
+            
             
         case _:
             print("Invalid case option occured.")

@@ -3,22 +3,18 @@ from google.genai import types
 from google.genai.errors import APIError, ClientError, ServerError
 
 #Custom Imports
-from db_tools.data_access import UserDataAccessor
 from user_template import User
-from llm_assitant.llm_prompts import LLM_Prompts_Manager
 from llm_assitant.llm_config import LLM_CONFIGS
-from llm_assitant.lmm_tools import LLM_Tools
+from llm_assitant.llm_skeleton import LLM_Skeleton
 
 class Gemini_AI_Agent():
     def __init__(self, user : User):
-        self.client = genai.Client()
-        self.model = self._get_available_model(self.client)
-        self.chat_session = None
-        self.ADA = UserDataAccessor()
-        self.custom_configs = self._create_config_object(LLM_CONFIGS)
-        self.prompts = LLM_Prompts_Manager()
-        self.tools = LLM_Tools()
         self.user_instance = user
+        self.skeleton = LLM_Skeleton()
+        self.client = genai.Client()
+        self.chat_session = None
+        self.model = self._get_available_model(self.client)
+        self.custom_configs = self._create_config_object(LLM_CONFIGS)
         
     def _get_available_model(self, client):
         available_model_name = None
@@ -58,165 +54,31 @@ class Gemini_AI_Agent():
 
         return generation_config
     
-    def _save_conversation(self, user_content : str, agent_content : str):
-        self.ADA.add_new_message(self.user_instance.conversationID,
-                            user_content,
-                            "USER"        
-        )
-        
-        self.ADA.add_new_message(self.user_instance.conversationID,
-                            agent_content,
-                            "AGENT"        
-        )
-        
-    def _update_user_up_time(self):
-        self.ADA.update_user_active_time(self.user_instance.userID)
-        
-    def _load_recent_chats(self, userID):
-        list_recent_convoID = []
-        list_recent_convoID = self.ADA.get_recent_conversationsIDs(userID)
-        self.user_instance.recent_memory = self.ADA.get_recent_messages(list_recent_convoID)
-        
-    def initialize_agent_features(self, userID : int):
-        #Load and Prep all features for the agent
+    def initialize_agent(self):
         try:
-            self._load_recent_chats(userID)
+            self._initialize_session()
+            self.user_instance.recent_memory = self.skeleton._load_recent_chats_to_memory(self.user_instance.userID)
             
         except Exception as e:
             print(f"UNFORSEEN ERROR occurred during feature initialization: {e}")
-        
-    def _tokenize(self, text: str) -> set[str]:
-        #Elimates all unneeded words in history
-        set_tokens = set()
-        for word in text.split():
-            word = word.lower()
-            if len(word) > 2:
-                set_tokens.add(word)
-                
-        return set_tokens
+      
     
-    def _preprocess_conversations(self):
-        #Checks if message was tokenized else will tokenize it
-        for convo in self.user_instance.recent_memory.values():
-            for msg in convo["message_details"]:
-                if msg["role"] == "USER":
-                    msg["tokens"] = self._tokenize(msg["content"])
-                
-    def _jaccard_similarity(self, a: set, b: set) -> float:
-        if not a or not b:
-            return 0.0
-        
-        return len(a & b) / len(a | b)
-    
-    def _find_similar_question(self, question: str, threshold: float = 0.5) -> float:
-        #Generate the question's tokens
-        q_tokens = self._tokenize(question)
-        
-        #Go through each message in a conversation
-        for convo in self.user_instance.recent_memory.values():
-            messages = convo.get("message_details", [])
-            
-            for i, msg in enumerate(messages):
-                if msg["role"] != "USER":
-                    continue
-                
-                tokens = msg["tokens"]
-                if tokens is None:
-                    continue
-                
-                score = self._jaccard_similarity(q_tokens, tokens)
-                if score >= threshold:
-                    #Get the reply the LLM gave
-                    if i > 0:
-                        prev_msg = messages[i - 1]
-                        return prev_msg, score
-    
-    def _read_through_short_memory(self, question : str) -> str:
-        if self.user_instance.recent_memory is None:
-            return None
-        
-        try:
-            self._preprocess_conversations()
-            prev_message = self._find_similar_question(question)
-            
-            #Build Prompt for LLM
-            return self.prompts.found_in_recent_chats(question, prev_message)
-        
-        except Exception as e:
-            print(f"UNFORSEEN ERROR has occured during memory reading: {e}")
-            
-    def _use_rag_sys(self, question : str) -> str:
-        try:
-            #Let the llm make a tool call
-            determined_tool = self.prompts.determine_tool_call(question)
-            
-            try:
-                tool_call_response_object = self.chat_session.send_message(determined_tool)
-                
-            except (ClientError, ServerError) as e:
-                print("\n" + "="*50)
-                print("CRITICAL API ERROR: Key/Quota Check Failed!")
-                print(f"Error Details: {e}")
-                print("This indicates an issue with your API key, region, or quota limits.")
-                print("="*50 + "\n")
-                exit()
-            except Exception as e:
-                print(f"\nUNEXPECTED ERROR occured: {e}")
-                exit()
-                    
-            try:
-                self.tools.update_tools_status(question, tool_call_response_object.text)
-                
-                #Use the tool to get info + build prompt
-                self.tools.use_tool()
-                retrieved_info = self.tools.fetch_results()
-                
-            except Exception as e:
-                print(f"An error occureed during tool calling: {e}")
-                retrieved_info = None
-            
-            #Check if information is retreived.
-            if retrieved_info is None:
-                return None
-            
-            else:
-                return self.prompts.info_on_question_found(retrieved_info)
-        
-        except Exception as e:
-            print(f"An error occured: {e}")
-        
-    def send_message(self, main_content : str) -> str:
-        #Create new session on first talk
-        if self.chat_session is None:
-            self.chat_session = self.client.chats.create(
+    def _initialize_session(self):
+        self.chat_session = self.client.chats.create(
                 model=self.model,
                 config=self.custom_configs
                 )
             
-        #Seach recent conversations before LLm request
-        retrieved_content = self._read_through_short_memory(main_content)
-        if retrieved_content:
-            content = retrieved_content
+    def send_text_filled_message(self, main_content : str) -> str:
+        #Create new session on first talk
+        if self.chat_session is None:
+            self._initialize_session()
             
-        else:      
-            #Will use tools to answer the question
-            improved_prompt = self._use_rag_sys(main_content) #variable swap is up for dicussion
-            if improved_prompt:
-                main_content = improved_prompt
-        
-        #Send Message to the llm
         try:
+            #Send Message to the llm
             response_object = self.chat_session.send_message(main_content)
-            
-            #Make db changes accordingly
-            try:
-                self._save_conversation(main_content, response_object.text)
-                self._update_user_up_time()
                 
-            except Exception as e:
-                print(f"UNEXPECTED ERROR occured during save process : {e}")
-                
-            #Return agent response even if db goes sideways
+            #Return llm response allways
             return response_object.text
         
         #Handle errors accordingly
@@ -229,4 +91,65 @@ class Gemini_AI_Agent():
             exit()
         except Exception as e:
             print(f"\nUNEXPECTED ERROR while checking API status: {e}")
-            exit()         
+            exit()   
+            
+    def _use_rag_system(self, question : str) -> str:
+        #Use Custom RAG tools to get accurate information on the question
+        try:
+            determined_tool = self.skeleton.get_determined_tool(question)
+            tool_call_response = self.send_text_filled_message(determined_tool)
+            self.skeleton.tools.update_tools_status(question, tool_call_response)
+            self.skeleton.tools.use_tool()
+            retrieved_info = self.skeleton.tools.fetch_results()
+            if retrieved_info is None:
+                return None
+            
+            return self.skeleton.prompts.info_on_question_found(retrieved_info)
+        
+        except Exception as e:
+            print(f"An error occured during RAG Retrieval: {e}")
+        
+    def _scan_recent_history(self, question : str) -> str:
+        try:
+            #Use history features to  check question like existed
+            if self.user_instance.recent_memory is None or len(self.user_instance.recent_memory) < 1:
+                return None, 0.0
+            
+            self.skeleton._preprocess_conversations(self.user_instance.recent_memory)
+            result = self._find_similar_question(question)
+            
+            if result is None:
+                return None, 0.0
+            
+            prev_message, score = result
+            
+            improved_prompt = self.skeleton.get_found_in_history(question, prev_message)
+            return improved_prompt, score
+            
+        except Exception as e:
+            print(f"An error occured during Hisotry Scan: {e}")
+        
+    def _summarize_messages(self):
+        sum_history_prompt = self.skeleton.prompts.summarize_current_message()
+        response_object = self.send_text_filled_message(sum_history_prompt)   
+        self.skeleton.add_convo_summary(response_object.text)
+        
+    def _fetch_context_if_needed(self):
+        prompt = self.skeleton.is_context_needed()
+        if prompt is None:
+            return None
+        
+        self.send_text_filled_message(prompt)
+        
+    def start_chatting(self, sent_content : str) -> str:
+        #Run Through the whole prompt refinement process (my mini orcastrastion)
+        improved_prompt, accuraccy_score = self._scan_recent_history(sent_content)
+        if accuraccy_score < 0.4:
+            improved_prompt = self._use_rag_system(sent_content)
+            if improved_prompt is None:
+                text_response = self.send_text_filled_message(sent_content)
+            
+        else:
+            text_response = self.send_text_filled_message(improved_prompt)
+                
+        return text_response
