@@ -35,15 +35,37 @@ class LLM_Tools:
         return set_clean_input
     
     def _search_by_keywords(self, query : str):
-        #Creates keywords to search from
-        keywords = self._clean_input(query)
-        if keywords is None:
-            return None
-        
-        #Queries DB for results
-        found_results = self._TDA.search_for_similer_title(list(keywords))
-        self.result_dict = self._tuple_to_dict(found_results)
-        
+        try:
+            #Creates keywords to search from
+            keywords = self._clean_input_to_keywords(query)
+            if keywords is None:
+                return None
+            
+            #Queries DB for results
+            found_results = self._TDA.search_for_similer_title(list(keywords))
+            self.result_dict = self._tuple_to_dict(found_results)
+            found_results.clear()
+            
+            #Fetch rest of the information on the page
+            #Get the page ids where info is present
+            set_page_ids = self._extract_page_ids()
+                
+            #Search for categories of the page
+            found_results = self._TDA.get_page_categories(set_page_ids)
+            if found_results:
+                self._add_fields_to_dict(found_results, set_page_ids)
+                found_results.clear()
+                print(found_results)
+                
+            #Search for sections of the page
+            found_results = self._TDA.get_page_sections(set_page_ids)
+            if found_results:
+                self._add_fields_to_dict(found_results, set_page_ids)
+                print(found_results)
+            
+        except Exception as e:
+            print(f"An error occured during search_by_keyword: {e}")
+            
     def _extract_page_ids(self) -> set:
         page_ids = set()
         for page in self.result_dict:
@@ -70,31 +92,11 @@ class LLM_Tools:
             for record in records:
                 if record[0] == page_ids[i]:
                         self.result_dict[page_ids[i]] = {"sections" : record}
-    
-    def _in_depth_search(self, query):
-        try:
-            #Get keywords from query + extract page ids
-            self._search_by_keywords(query)
-            set_page_ids = self._extract_page_ids()
-            
-            #Search for categories of the page
-            found_results = self._TDA.get_page_categories(set_page_ids)
-            self._add_fields_to_dict(found_results, set_page_ids)
-            
-            #Search for sections of the page
-            found_results = self._TDA.get_page_sections(set_page_ids)
-            self._add_fields_to_dict(found_results, set_page_ids)
-            
-        except Exception as e:
-            print(f"An error occurred: {e}")
 
     def use_tool(self):
         #Determine the tool called
         if self.tool_call == "SEARCH_BY_KEYWORD":
             self._search_by_keywords(self.given_query)
-            
-        elif self.tool_call == "IN_DEPTH_SEARCH":
-            self._in_depth_search(self.given_query)
             
         #Return None if no tool is called
         elif self.tool_call == "NO_TOOL":

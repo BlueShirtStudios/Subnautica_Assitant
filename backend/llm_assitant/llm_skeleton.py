@@ -42,11 +42,14 @@ class LLM_Skeleton:
     
     def _preprocess_conversations(self, recent_memory : dict ):
         #Checks if message was tokenized else will tokenize it
-        for convo in recent_memory:
-            messages = convo.get("message_details", [])
+        if recent_memory is None:
+            return None
+        
+        for convo in recent_memory.values(): 
+            messages = convo["message_details"]
             
             for msg in messages:
-                if msg.get("role") == "USER":
+                if msg["role"] == "USER":
                     if not msg.get("tokens"):
                         msg["tokens"] = self._tokenize_text(msg["content"])
                 
@@ -58,7 +61,7 @@ class LLM_Skeleton:
     
     def _find_similar_question(self, question: str, threshold: float = 0.5) -> float:
         #Generate the question's tokens
-        q_tokens = self._tokenize(question)
+        q_tokens = self._tokenize_text(question)
         
         #Go through each message in a conversation
         for convo in self.user_instance.recent_memory.values():
@@ -83,14 +86,22 @@ class LLM_Skeleton:
          
         
     def is_context_needed(self, MSG_LIMIT : int = 10) -> str:
-        if self.current_messages <= MSG_LIMIT:
+        if len(self.current_messages) <= MSG_LIMIT:
             return None
-        
-        context_prompt = self.prompts.need_context(self.summerized_messages)
-        return context_prompt
+        else:
+            context_prompt = self.prompts.need_context(self.summerized_messages)
+            return context_prompt
     
     def get_determined_tool(self, question : str) -> str:
         return self.prompts.determine_tool_call(question)   
     
     def get_found_in_history(self, question : str, prev_question : str) -> str:
         return self.prompts.found_in_recent_chats(question, prev_question)
+    
+    def is_summary_needed(self, MSG_LIMIT : int = 10) -> str:
+        if len(self.current_messages) >= MSG_LIMIT:
+            sum_history_prompmt = self.prompts.summarize_current_message(self.current_messages)
+            return sum_history_prompmt
+        
+        else:
+            return None

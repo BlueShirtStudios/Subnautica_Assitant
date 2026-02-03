@@ -48,10 +48,11 @@ GET_RECENT_USER_MESSAGES = """
                     LIMIT 6
                     """
                     
+#Get Data for the LLM Queries
 SEARCH_FOR_SIMILER_TITLE_PAGE ="""
                     SELECT * 
                     FROM pages
-                    WHERE title = ANY(%s)
+                    WHERE LOWER(title) ILIKE ANY(%s)
                     """
                     
 SEARCH_FOR_PAGE_CATEGORIES = """

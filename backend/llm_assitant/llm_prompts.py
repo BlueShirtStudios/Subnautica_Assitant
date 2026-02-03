@@ -53,13 +53,6 @@ class LLM_Prompts_Manager:
                     
                     Question: How to craft a seamoth?
                     Respond: SEARCH_BY_KEYWORD
-                    
-                    -If a topic needs to be expanded on or you decide you need more information:
-                    Question: What are features of a ghost leviathan?
-                    Respond: IN_DEPTH_SEARCH
-                    
-                    Question: Where can I find materials for a seamoth?
-                    Respond: IN_DEPTH_SEARCH
     
             """
         
@@ -121,7 +114,7 @@ class LLM_Prompts_Manager:
         """
         
         
-    def summarize_current_message(msg_list : list) -> str:
+    def summarize_current_message(self, msg_list : list) -> str:
         if msg_list is None:
             return None
         
@@ -132,7 +125,7 @@ class LLM_Prompts_Manager:
         
             """
             
-    def need_context(sum_msgs : str) -> str:
+    def need_context(self, sum_msgs : str) -> str:
         if sum_msgs is None:
             return None
         

@@ -10,7 +10,7 @@ class User:
         #Conversation Details
         self.conversationID = convoID
         self.current_messageID = None
-        self.recent_memory = [dict]
+        self.recent_memory = []
         
         #Time Details
         self.LoginAt = datetime.now()

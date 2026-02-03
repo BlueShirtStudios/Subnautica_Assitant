@@ -168,6 +168,7 @@ class UserDataAccessor:
                 
                 
     def search_for_similer_title(self, word_set : set) -> tuple:
+        word_set = list([word.lower() for word in word_set])
         with self.db as db:
             try:
                 self.db.cursor.execute(q.SEARCH_FOR_SIMILER_TITLE_PAGE, (word_set,))
@@ -176,6 +177,7 @@ class UserDataAccessor:
                 if records is None:
                     return None
                 
+                print(records)
                 return records
                 
             
@@ -187,13 +189,14 @@ class UserDataAccessor:
                 db.connection.rollback()
                 print(f"An error occured: {e}")
                 
-    def get_page_categories(self, pageID):
+    def get_page_categories(self, pageID : set):
+        pageID = list(pageID)
         with self.db as db:
             try:
                 self.db.cursor.execute(q.SEARCH_FOR_PAGE_CATEGORIES, (pageID,))
                 records = self.db.cursor.fetchall()
                 if records is None:
-                    return 
+                    return None
                 
                 return records
             
@@ -206,19 +209,20 @@ class UserDataAccessor:
                 print(f"An error occured: {e}")
             
     def get_page_sections(self, pageID):
-            with self.db as db:
-                try:
-                    self.db.cursor.execute(q.SEARCH_FOR_PAGE_SECTIONS, (pageID,))
-                    records = self.db.cursor.fetchall()
-                    if records is None:
-                        return 
+        pageID = list(pageID)
+        with self.db as db:
+            try:
+                self.db.cursor.execute(q.SEARCH_FOR_PAGE_SECTIONS, (pageID,))
+                records = self.db.cursor.fetchall()
+                if records is None:
+                    return 
                     
-                    return records
+                return records
                 
-                except ProgrammingError as e:
-                    db.connection.rollback()
-                    print(f"A programming error occured: {e}")
+            except ProgrammingError as e:
+                db.connection.rollback()
+                print(f"A programming error occured: {e}")
                             
-                except Exception as e:
-                    db.connection.rollback()
-                    print(f"An error occured: {e}")
+            except Exception as e:
+                db.connection.rollback()
+                print(f"An error occured: {e}")

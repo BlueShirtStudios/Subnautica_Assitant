@@ -13,12 +13,20 @@ def boot_emergency_systems(user_instance : User) -> str:
     UDA.update_user_active_time(user_instance.userID)
         
     run = True
-
+    print("*NOTIFICATION* The advanced PDA is there to assit you with any questions for your survival. Type /exit to exit the program. Type /help to see all /commands.")
     #Run ALT
     while (run):
-        user_question = input("What is you question? ").strip()
-        response = ALT.start_chatting(user_question )
-        print(response)
+        try:
+            user_question = input("What is you question? ").strip()
+            if user_question.lower() == "exit":
+                exit_app()
+                
+            response = ALT.start_chatting(user_question )
+            print(response)
+        
+        except Exception as e:
+            print(f"Whoops an error occured during chat session: {e}")
+            continue
         
 def exit_app():
     print("Exiting Emergency System Failover...")

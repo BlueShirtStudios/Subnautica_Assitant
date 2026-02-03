@@ -79,7 +79,7 @@ class Gemini_AI_Agent():
             response_object = self.chat_session.send_message(main_content)
                 
             #Return llm response allways
-            return response_object.text
+            return response_object
         
         #Handle errors accordingly
         except (ClientError, ServerError) as e:
@@ -87,7 +87,7 @@ class Gemini_AI_Agent():
             print("CRITICAL API ERROR: Key/Quota Check Failed!")
             print(f"Error Details: {e}")
             print("This indicates an issue with your API key, region, or quota limits.")
-            print("="*50 + "\n")
+            print("="*50 + "\n")            
             exit()
         except Exception as e:
             print(f"\nUNEXPECTED ERROR while checking API status: {e}")
@@ -97,14 +97,15 @@ class Gemini_AI_Agent():
         #Use Custom RAG tools to get accurate information on the question
         try:
             determined_tool = self.skeleton.get_determined_tool(question)
-            tool_call_response = self.send_text_filled_message(determined_tool)
-            self.skeleton.tools.update_tools_status(question, tool_call_response)
+            tool_call_response_object = self.send_text_filled_message(determined_tool)
+            self.skeleton.tools.update_tools_status(question, tool_call_response_object.text)
             self.skeleton.tools.use_tool()
             retrieved_info = self.skeleton.tools.fetch_results()
             if retrieved_info is None:
                 return None
             
-            return self.skeleton.prompts.info_on_question_found(retrieved_info)
+            rag_retieved_prompt = self.skeleton.prompts.info_on_question_found(question, retrieved_info)
+            return rag_retieved_prompt
         
         except Exception as e:
             print(f"An error occured during RAG Retrieval: {e}")
@@ -116,7 +117,7 @@ class Gemini_AI_Agent():
                 return None, 0.0
             
             self.skeleton._preprocess_conversations(self.user_instance.recent_memory)
-            result = self._find_similar_question(question)
+            result = self.skeleton._find_similar_question(question)
             
             if result is None:
                 return None, 0.0
@@ -127,10 +128,13 @@ class Gemini_AI_Agent():
             return improved_prompt, score
             
         except Exception as e:
-            print(f"An error occured during Hisotry Scan: {e}")
+            print(f"An error occured during History Scan: {e}")
         
     def _summarize_messages(self):
-        sum_history_prompt = self.skeleton.prompts.summarize_current_message()
+        sum_history_prompt = self.skeleton.is_summary_needed()
+        if sum_history_prompt is None:
+            return None
+        
         response_object = self.send_text_filled_message(sum_history_prompt)   
         self.skeleton.add_convo_summary(response_object.text)
         
@@ -142,14 +146,26 @@ class Gemini_AI_Agent():
         self.send_text_filled_message(prompt)
         
     def start_chatting(self, sent_content : str) -> str:
+        context_prompt = self.skeleton.is_context_needed()
+        if context_prompt:
+            self.send_text_filled_message(context_prompt)
+        
         #Run Through the whole prompt refinement process (my mini orcastrastion)
         improved_prompt, accuraccy_score = self._scan_recent_history(sent_content)
         if accuraccy_score < 0.4:
             improved_prompt = self._use_rag_system(sent_content)
             if improved_prompt is None:
-                text_response = self.send_text_filled_message(sent_content)
+                #No information was found
+                response_object = self.send_text_filled_message(sent_content)
             
-        else:
-            text_response = self.send_text_filled_message(improved_prompt)
-                
-        return text_response
+            else:
+                #Information was found
+                response_object = self.send_text_filled_message(improved_prompt)
+         
+        #Save Conversation + Update Needed Things
+        self.skeleton._save_conversation(self.user_instance.conversationID, sent_content, response_object.text)
+        self._summarize_messages()
+        self.skeleton._update_user_up_time(self.user_instance.userID)
+         
+        #Return output to user       
+        return response_object.text
