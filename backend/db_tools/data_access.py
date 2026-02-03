@@ -111,11 +111,13 @@ class UserDataAccessor:
                 records = db.cursor.fetchall()
                 
                 #Convert Tupled Records to Single list
+                if records is None:
+                    return None
+                
                 list_recent_convos = []
                 for record in records:
                     list_recent_convos.append(record[0])
                     
-                print(list_recent_convos)
                 return list_recent_convos
             
             except ProgrammingError as e:
@@ -152,14 +154,75 @@ class UserDataAccessor:
                         "role": record[1],
                         "content": record[2]
                     })
+                    i += 1
 
-                print(dict_conversations)
                 return dict_conversations
                      
             except ProgrammingError as e:
                 db.connection.rollback()
                 print(f"A programming error occured: {e}")
                         
+            except Exception as e:
+                db.connection.rollback()
+                print(f"An error occured: {e}")
+                
+                
+    def search_for_similer_title(self, word_set : set) -> tuple:
+        word_set = list([word.lower() for word in word_set])
+        with self.db as db:
+            try:
+                self.db.cursor.execute(q.SEARCH_FOR_SIMILER_TITLE_PAGE, (word_set,))
+                records = self.db.cursor.fetchall()
+
+                if records is None:
+                    return None
+                
+                print(records)
+                return records
+                
+            
+            except ProgrammingError as e:
+                db.connection.rollback()
+                print(f"A programming error occured: {e}")
+                        
+            except Exception as e:
+                db.connection.rollback()
+                print(f"An error occured: {e}")
+                
+    def get_page_categories(self, pageID : set):
+        pageID = list(pageID)
+        with self.db as db:
+            try:
+                self.db.cursor.execute(q.SEARCH_FOR_PAGE_CATEGORIES, (pageID,))
+                records = self.db.cursor.fetchall()
+                if records is None:
+                    return None
+                
+                return records
+            
+            except ProgrammingError as e:
+                db.connection.rollback()
+                print(f"A programming error occured: {e}")
+                        
+            except Exception as e:
+                db.connection.rollback()
+                print(f"An error occured: {e}")
+            
+    def get_page_sections(self, pageID):
+        pageID = list(pageID)
+        with self.db as db:
+            try:
+                self.db.cursor.execute(q.SEARCH_FOR_PAGE_SECTIONS, (pageID,))
+                records = self.db.cursor.fetchall()
+                if records is None:
+                    return 
+                    
+                return records
+                
+            except ProgrammingError as e:
+                db.connection.rollback()
+                print(f"A programming error occured: {e}")
+                            
             except Exception as e:
                 db.connection.rollback()
                 print(f"An error occured: {e}")

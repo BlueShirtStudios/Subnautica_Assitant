@@ -9,16 +9,24 @@ UDA = UserDataAccessor()
 #This is where the implentation of the agent lies  
 def boot_emergency_systems(user_instance : User) -> str:
     ALT = Gemini_AI_Agent(user_instance)
-    ALT.initialize_agent_features(user_instance.userID)
+    ALT.initialize_agent()
     UDA.update_user_active_time(user_instance.userID)
-
+        
     run = True
-
+    print("*NOTIFICATION* The advanced PDA is there to assit you with any questions for your survival. Type /exit to exit the program. Type /help to see all /commands.")
     #Run ALT
     while (run):
-        user_question = input("What is you question? ").strip()
-        response = ALT.send_message(user_question)
-        print(response)
+        try:
+            user_question = input("What is you question? ").strip()
+            if user_question.lower() == "exit":
+                exit_app()
+                
+            response = ALT.start_chatting(user_question )
+            print(response)
+        
+        except Exception as e:
+            print(f"Whoops an error occured during chat session: {e}")
+            continue
         
 def exit_app():
     print("Exiting Emergency System Failover...")
@@ -63,10 +71,13 @@ def determine_action(user_option : int):
         case 2: 
             login_account()
             
+            
         case _:
             print("Invalid case option occured.")
            
             
 if __name__ == "__main__":
+    print("Packages/Modules successfully loaded.")
+    print("-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=")
     user_option = iph.get_user_selection()
     determine_action(user_option)

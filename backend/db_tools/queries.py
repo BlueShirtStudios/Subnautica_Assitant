@@ -47,4 +47,24 @@ GET_RECENT_USER_MESSAGES = """
                     ORDER BY conversationID DESC, sentAt DESC
                     LIMIT 6
                     """
-               
+                    
+#Get Data for the LLM Queries
+SEARCH_FOR_SIMILER_TITLE_PAGE ="""
+                    SELECT * 
+                    FROM pages
+                    WHERE LOWER(title) ILIKE ANY(%s)
+                    """
+                    
+SEARCH_FOR_PAGE_CATEGORIES = """
+                    SELECT pageid, categories
+                    FROM categories
+                    WHERE pageid = ANY(%s)
+                    LIMIT 10
+                    """
+                    
+SEARCH_FOR_PAGE_SECTIONS = """
+                    SELECT pageid, toclevel, level, line, fromtitle, anchor, linkanchor
+                    FROM sections
+                    WHERE pageid = ANY(%s)
+                    LIMIT 10
+                    """

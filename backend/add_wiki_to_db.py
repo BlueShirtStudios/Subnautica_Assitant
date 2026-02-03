@@ -86,7 +86,7 @@ def insert_lines_into_db(data_path: Path):
                         (page_id, title, fullurl, extract, thumbnail))
                         
                         #Add info to category table
-                        categories = line.get("category") or []
+                        categories = line.get("categories") or []
                         for category in categories:
                             category = clean(category)
                             db.cursor.execute(
@@ -104,11 +104,11 @@ def insert_lines_into_db(data_path: Path):
                                 clean(section.get("level")),
                                 clean(section.get("line")),
                                 clean(section.get("number")),
-                                clean(section.get("index_number")),
+                                clean(section.get("index")),
                                 clean(section.get("fromtitle")),
                                 clean(section.get("byteoffset")),
                                 clean(section.get("anchor")),
-                                clean(section.get("linkanchor")),
+                                clean(section.get("linkAnchor")),
                                 ))
                             
                         #Commit changes to db
